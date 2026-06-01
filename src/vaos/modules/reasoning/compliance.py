@@ -28,11 +28,21 @@ async def answer(query: str, context: Context, grounding: Grounding, llm: LLMCli
             reason=GapReason.EMPTY_GROUNDING,
             message="Tidak ditemukan di basis pengetahuan. Diteruskan ke peninjau.",
         )
-    if any(c.status in _REVOKED for c in grounding.chunks):
-        # Regulation revoked/amended -> do not assert it as current (ADR-0002).
+    stale = next((c for c in grounding.chunks if c.status in _REVOKED), None)
+    if stale is not None:
+        # Regulation revoked/amended -> do not assert it as current; name the
+        # superseding reference instead so the reviewer can re-ground (ADR-0002).
+        superseding = stale.superseded_by
+        message = "Regulasi terkait sudah dicabut/diubah. Diteruskan ke peninjau."
+        if superseding:
+            message = (
+                f"Regulasi terkait ({stale.reference}) sudah dicabut/diubah, "
+                f"digantikan oleh {superseding}. Diteruskan ke peninjau."
+            )
         return Refusal(
             reason=GapReason.REVOKED_REGULATION,
-            message="Regulasi terkait sudah dicabut/diubah. Diteruskan ke peninjau.",
+            message=message,
+            superseding_reference=superseding,
         )
     prompt = f"Pertanyaan: {query}\n\nGrounding:\n" + "\n".join(
         f"[{c.reference}] {c.text}" for c in grounding.chunks

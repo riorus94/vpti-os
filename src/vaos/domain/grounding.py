@@ -25,6 +25,7 @@ class GroundingChunk(BaseModel):
     text: str                  # verbatim (never machine-translated — ADR-0004)
     score: float
     status: RegulationStatus | None = None  # set only for PASAL_ID
+    superseded_by: str | None = None         # superseding cite when diubah/dicabut (ADR-0002)
 
 
 class Grounding(BaseModel):
