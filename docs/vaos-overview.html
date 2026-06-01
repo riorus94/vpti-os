@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAOS — Overview</title>
+<style>
+  :root{
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc;
+    --brand:#0e7490; --brand2:#0891b2; --good:#0e8a16; --warn:#b45309; --card:#fff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink); background:linear-gradient(135deg,#ecfeff,#f8fafc 40%);
+    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;
+  }
+  .deck{width:min(960px,100%)}
+  .slide{display:none;background:var(--card);border:1px solid var(--line);
+    border-radius:18px;box-shadow:0 20px 50px -25px rgba(2,40,60,.4);padding:40px 44px;animation:fade .4s ease}
+  .slide.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .kicker{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);font-weight:700}
+  h1{font-size:34px;margin:.2em 0 .1em;line-height:1.1}
+  h2{font-size:22px;margin:.2em 0 .6em}
+  .lede{font-size:18px;color:var(--muted);margin:0 0 22px;line-height:1.5}
+  .pipe{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 18px}
+  .step{flex:1 1 0;min-width:96px;border:1px solid var(--line);border-radius:12px;padding:12px 10px;
+    text-align:center;cursor:pointer;transition:.18s;background:#f9fdff}
+  .step:hover{border-color:var(--brand2);transform:translateY(-2px)}
+  .step.sel{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .step .ic{font-size:22px}
+  .step .nm{font-size:12.5px;font-weight:700;margin-top:4px}
+  .detail{background:var(--bg);border:1px dashed var(--brand2);border-radius:12px;
+    padding:16px 18px;min-height:74px;font-size:16px;line-height:1.5}
+  .detail b{color:var(--brand)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+  .promise{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:#f9fdff}
+  .promise .t{font-weight:800;font-size:16px;display:flex;gap:8px;align-items:center}
+  .promise p{margin:6px 0 0;color:var(--muted);font-size:14.5px;line-height:1.45}
+  .status{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+  .bar{height:12px;border-radius:8px;background:var(--line);overflow:hidden;margin:8px 0 6px}
+  .bar>i{display:block;height:100%;width:70%;background:linear-gradient(90deg,var(--good),#34d058)}
+  .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+  .tag{font-size:12.5px;padding:4px 10px;border-radius:999px;background:#e8f7ec;color:var(--good);font-weight:700}
+  .tag.next{background:#fef3e2;color:var(--warn)}
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-top:22px}
+  .dots{display:flex;gap:8px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--line);cursor:pointer}
+  .dot.on{background:var(--brand);transform:scale(1.2)}
+  button{font:inherit;border:0;background:var(--brand);color:#fff;padding:10px 18px;border-radius:10px;
+    cursor:pointer;font-weight:700}
+  button.ghost{background:#fff;color:var(--brand);border:1px solid var(--line)}
+  button:disabled{opacity:.35;cursor:default}
+  .foot{margin-top:14px;font-size:12px;color:var(--muted);text-align:center}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}.slide{padding:28px 22px}h1{font-size:27px}}
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- SLIDE 1 -->
+  <section class="slide active" id="s1">
+    <div class="kicker">VPTI AI Operating System</div>
+    <h1>Turning import rules into trustworthy action</h1>
+    <p class="lede">Import regulations are scattered, change often, and are slow to check by hand —
+      and a normal chatbot just <i>guesses</i>. VAOS does the opposite: it answers only from the
+      actual rules, in plain Bahasa Indonesia, and turns the answer into ready-to-act work.</p>
+
+    <h2>How one question flows — <span style="color:var(--muted);font-weight:500;font-size:15px">tap a step</span></h2>
+    <div class="pipe" id="pipe"></div>
+    <div class="detail" id="detail">👆 Tap any step above to see what it does, in plain language.</div>
+
+    <div class="nav">
+      <span style="color:var(--muted);font-size:14px">Page 1 of 2 — what it does</span>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="dots"><span class="dot on" data-g="0"></span><span class="dot" data-g="1"></span></div>
+        <button id="next1">The promise →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2 -->
+  <section class="slide" id="s2">
+    <div class="kicker">Why you can trust it</div>
+    <h1>Four promises — and where we are</h1>
+
+    <div class="grid">
+      <div class="promise"><div class="t">📚 Never guesses the law</div>
+        <p>If the answer isn't in the official rule books, VAOS says <b>“not found — sent to a reviewer.”</b> It never invents a regulation.</p></div>
+      <div class="promise"><div class="t">🕒 Always current</div>
+        <p>It checks whether a rule is still in force, amended (<i>diubah</i>) or revoked (<i>dicabut</i>) — and names the replacement.</p></div>
+      <div class="promise"><div class="t">🇮🇩 In your language, with proof</div>
+        <p>Answers in Bahasa Indonesia, quoting the exact <i>pasal</i> word-for-word — so every answer is traceable.</p></div>
+      <div class="promise"><div class="t">✅ A human approves the action</div>
+        <p>Nothing is filed as a task until an authorised approver says yes. The AI proposes; a person decides.</p></div>
+    </div>
+
+    <div class="status">
+      <h2 style="margin-bottom:4px">Where we are today</h2>
+      <div class="bar"><i id="prog"></i></div>
+      <p style="margin:2px 0 0;color:var(--muted);font-size:14.5px">
+        The <b>“brain”</b> — understanding the question, finding the rules, deciding, the trust rules —
+        is built and tested. Next: plugging in the live systems (chat, databases, the rule service).</p>
+      <div class="tags">
+        <span class="tag">✓ Understands the question</span>
+        <span class="tag">✓ Grounded-or-refuse</span>
+        <span class="tag">✓ Decides next actions</span>
+        <span class="tag">✓ Human approval gate</span>
+        <span class="tag next">⟳ Connect live chat & data</span>
+        <span class="tag next">⟳ Connect rule service</span>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="ghost" id="back2">← What it does</button>
+      <div class="dots"><span class="dot" data-g="0"></span><span class="dot on" data-g="1"></span></div>
+      <span style="color:var(--muted);font-size:14px">Page 2 of 2 — the promise</span>
+    </div>
+  </section>
+
+  <div class="foot">VAOS — operational intelligence for VPTI · use ← → arrow keys to move</div>
+</div>
+
+<script>
+  const STEPS = [
+    {ic:"💬", nm:"Ask",        d:"A staff member asks a question in <b>Telegram</b> — e.g. “Does importing truck tyres need VPTI?” Only approved people can use it."},
+    {ic:"🎯", nm:"Understand", d:"VAOS restates the request as a clear <b>Context</b> (who, goal, decision) and confirms it with you — so the answer fits a real decision, not a vague query."},
+    {ic:"🔎", nm:"Find rules",  d:"It retrieves the <b>Grounding</b>: the official regulation text (and whether it's still in force) plus relevant internal know-how. No rule found → it refuses rather than guess."},
+    {ic:"📄", nm:"Answer",      d:"For a compliance question it returns a short, cited <b>answer</b>. For a bigger question it writes a structured <b>brief</b> (summary, risk, opportunity, recommendation)."},
+    {ic:"⚙️", nm:"Decide",      d:"From the answer it works out the <b>next actions</b> — e.g. a non-compliant case becomes a remediation task; an opportunity goes to strategy."},
+    {ic:"🧑‍⚖️", nm:"Approve",   d:"An authorised <b>approver</b> reviews each proposed action in Telegram. Nothing happens automatically — a person signs off first."},
+    {ic:"📌", nm:"Act",         d:"Approved actions become tasks in your work tracker (<b>Linear</b>), assigned to the right team. Duplicates are caught automatically."},
+  ];
+  const pipe=document.getElementById('pipe'), detail=document.getElementById('detail');
+  STEPS.forEach((s,i)=>{
+    const el=document.createElement('div'); el.className='step';
+    el.innerHTML=`<div class="ic">${s.ic}</div><div class="nm">${s.nm}</div>`;
+    el.onclick=()=>{document.querySelectorAll('.step').forEach(x=>x.classList.remove('sel'));
+      el.classList.add('sel'); detail.innerHTML=s.d;};
+    pipe.appendChild(el);
+  });
+
+  const slides=[document.getElementById('s1'),document.getElementById('s2')];
+  let cur=0;
+  function go(i){cur=Math.max(0,Math.min(1,i));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===cur));
+    document.querySelectorAll('.dot').forEach(d=>d.classList.toggle('on',+d.dataset.g===cur));
+    if(cur===1){setTimeout(()=>document.getElementById('prog').style.width='70%',50);}
+  }
+  document.getElementById('next1').onclick=()=>go(1);
+  document.getElementById('back2').onclick=()=>go(0);
+  document.querySelectorAll('.dot').forEach(d=>d.onclick=()=>go(+d.dataset.g));
+  document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1);});
+</script>
+</body>
+</html>

@@ -61,6 +61,13 @@ _Avoid_: task (reserve "task" for the Linear artifact specifically), ticket
 A member of the Telegram allowlist holding approval authority for **Actions** — a subset of **Authorized Users**. Only an Approver can turn a proposed Action into a filed Linear task. Distinct from the asker, who is notified but cannot self-approve. Separates *asking a question* from *dispatching enforcement*.
 _Avoid_: admin, reviewer, owner
 
+**Agent**:
+A proactive, scheduled/triggered runner (in `src/vaos/agents/`) that pursues a standing goal
+without waiting for a **Query** — e.g. Regulation-Watch, Knowledge-Gap Resolver, Market-Intel.
+Reuses the same domain + ports as the request pipeline; produces work only via **Actions**
+through the approval gate (ADR-0008/0009). Distinct from the reactive orchestrator.
+_Avoid_: bot, job, worker (reserve "worker" for the async-processing infra)
+
 **Action Dedup Key**:
 The identity used to prevent duplicate **Actions** — derived from the confirmed **Context** (Client/Objective/Decision) + Action type + regulation reference (not raw query text). On collision, the recurrence is attached to the existing open Action rather than filed again or silently dropped.
 _Avoid_: hash, fingerprint
