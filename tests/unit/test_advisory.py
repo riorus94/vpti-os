@@ -41,3 +41,14 @@ def test_unregistered_model_falls_back_to_intent_default() -> None:
     res = asyncio.run(brief("q", _ctx(), Intent.RISK,
                             Grounding(chunks=[]), StubLLM(_payload("banana_nonsense"))))
     assert res.thinking_model == DEFAULT_BY_INTENT[Intent.RISK]
+
+
+def test_brief_emits_finding_from_llm() -> None:
+    payload = _payload(
+        "systems_thinking",
+        compliance_status="non_compliant",
+        risks=[{"description": "late LS", "severity": "high"}],
+    )
+    res = asyncio.run(brief("q", _ctx(), Intent.STRATEGY, Grounding(chunks=[]), StubLLM(payload)))
+    assert res.finding.compliance_status.value == "non_compliant"
+    assert len(res.finding.risks) == 1
