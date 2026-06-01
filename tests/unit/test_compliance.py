@@ -1,14 +1,26 @@
 """Compliance reasoning — grounded-or-refuse (vaos-mvp/06).
 
-Asserts on the RETURNED TYPE, not on a Store side-effect (Q3): grounding present
--> ComplianceAnswer with citations; empty grounding -> Refusal(EMPTY_GROUNDING);
-dicabut regulation -> Refusal(REVOKED_REGULATION, superseding_reference set).
-LLM behind a StubLLM; no Store needed.
+Asserts on the RETURNED TYPE, not a Store side-effect (Q3): empty grounding ->
+Refusal(EMPTY_GROUNDING). LLM behind a StubLLM; no Store needed.
 """
 
-import pytest
+import asyncio
+
+from vaos.adapters.llm.stub import StubLLM
+from vaos.domain.context import Context
+from vaos.domain.grounding import Grounding
+from vaos.domain.output import GapReason, Refusal
+from vaos.modules.reasoning.compliance import answer
 
 
-@pytest.mark.skip(reason="implement in vaos-mvp/06")
+def _ctx() -> Context:
+    return Context(
+        client="KSO", objective="cek wajib VPTI", audience="importer",
+        decision_required="lanjut?", constraints="-", asker_id=1,
+    )
+
+
 def test_empty_grounding_returns_refusal() -> None:
-    ...
+    res = asyncio.run(answer("HS 3824.99 wajib LS?", _ctx(), Grounding(chunks=[]), StubLLM("x")))
+    assert isinstance(res, Refusal)
+    assert res.reason is GapReason.EMPTY_GROUNDING

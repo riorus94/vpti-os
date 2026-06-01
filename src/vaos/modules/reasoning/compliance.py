@@ -11,9 +11,15 @@ this module never touches the Store. No thinking model is used for compliance.
 
 from vaos.domain.context import Context
 from vaos.domain.grounding import Grounding
-from vaos.domain.output import ComplianceResult
+from vaos.domain.output import ComplianceResult, GapReason, Refusal
 from vaos.ports.llm import LLMClient
 
 
 async def answer(query: str, context: Context, grounding: Grounding, llm: LLMClient) -> ComplianceResult:
-    raise NotImplementedError("vaos-mvp/06 — return ComplianceAnswer | Refusal")
+    if grounding.is_empty:
+        # No grounding -> refuse, never answer from model memory (ADR-0001).
+        return Refusal(
+            reason=GapReason.EMPTY_GROUNDING,
+            message="Tidak ditemukan di basis pengetahuan. Diteruskan ke peninjau.",
+        )
+    raise NotImplementedError("vaos-mvp/06 — grounded answer + dicabut refusal next")
