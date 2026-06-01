@@ -42,10 +42,17 @@ Tavily (web, non-compliance only) · PostgreSQL · Telegram (long-polling).
 
 ```bash
 python -m venv .venv && . .venv/Scripts/activate   # Windows
-pip install -e ".[dev]"
+pip install -e ".[dev]"     # base + dev — works on py3.12–3.14
 cp .env.example .env        # fill in tokens/keys
 pytest                      # pure-domain tests run today; rest are skipped stubs
 ruff check . && mypy
+```
+
+**Heavy ML extras need Python 3.12** (no py3.14 wheels yet for faiss/torch/ragas):
+
+```bash
+pip install -e ".[rag]"     # faiss-cpu + sentence-transformers (real retrieval)
+pip install -e ".[eval]"    # ragas (AI eval)
 ```
 
 Implementation is sliced into tracer-bullet issues under `.scratch/`. Start with

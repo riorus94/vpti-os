@@ -3,6 +3,8 @@ name = "vaos"
 version = "0.1.0"
 description = "VPTI AI Operating System — turns regulation and knowledge into grounded, structured, actionable output"
 requires-python = ">=3.12"
+# Base deps: all have wheels on current Python. Heavy native/ML deps live in the
+# optional [rag]/[eval] groups (no py3.14 wheels yet — install them on py3.12).
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
@@ -10,8 +12,6 @@ dependencies = [
     "pydantic-settings",
     "python-telegram-bot",      # Telegram interface (long-polling for MVP, ADR-0003 / vaos-mvp/01)
     "httpx",                    # pasal-id, Tavily, Linear, Azure calls
-    "faiss-cpu",                # internal Vault index (ADR-0002 / ADR-0006)
-    "sentence-transformers",    # local multilingual-e5 embeddings (ADR-0007)
     "loguru",                   # logging (Feedback Loop, vaos-mvp/09)
     "sqlalchemy",
     "psycopg[binary]",          # PostgreSQL durable store
@@ -23,7 +23,16 @@ dev = [
     "pytest-asyncio",
     "ruff",
     "mypy",
-    "ragas",                    # AI eval: groundedness / relevance / correctness
+]
+# RAG runtime — internal Vault index + local embeddings (ADR-0002/0006/0007).
+# Needs a py3.12 env (faiss/torch have no py3.14 wheels yet).
+rag = [
+    "faiss-cpu",
+    "sentence-transformers",    # local multilingual-e5
+]
+# AI evaluation. Also needs py3.12 (ragas -> scikit-network has no py3.14 wheel).
+eval = [
+    "ragas",
 ]
 
 [build-system]
