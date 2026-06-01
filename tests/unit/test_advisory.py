@@ -13,6 +13,7 @@ from vaos.domain.intent import Intent
 from vaos.domain.grounding import Grounding
 from vaos.domain.output import AdvisoryBrief
 from vaos.modules.reasoning.advisory import brief
+from vaos.modules.reasoning.thinking_models import DEFAULT_BY_INTENT
 
 _SECTIONS = {k: "x" for k in
              ("ringkasan_eksekutif", "konteks", "analisis", "risiko", "peluang", "rekomendasi")}
@@ -34,3 +35,9 @@ def test_brief_uses_registered_model_from_llm() -> None:
                             Grounding(chunks=[]), StubLLM(_payload("pre_mortem"))))
     assert isinstance(res, AdvisoryBrief)
     assert res.thinking_model == "pre_mortem"
+
+
+def test_unregistered_model_falls_back_to_intent_default() -> None:
+    res = asyncio.run(brief("q", _ctx(), Intent.RISK,
+                            Grounding(chunks=[]), StubLLM(_payload("banana_nonsense"))))
+    assert res.thinking_model == DEFAULT_BY_INTENT[Intent.RISK]

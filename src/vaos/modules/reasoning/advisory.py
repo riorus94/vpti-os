@@ -12,6 +12,7 @@ from vaos.domain.finding import Finding
 from vaos.domain.grounding import Grounding
 from vaos.domain.intent import Intent
 from vaos.domain.output import AdvisoryBrief, SixSections
+from vaos.modules.reasoning.thinking_models import DEFAULT_BY_INTENT, REGISTRY
 from vaos.ports.llm import LLMClient
 
 _SYSTEM = (
@@ -25,8 +26,11 @@ async def brief(
     query: str, context: Context, intent: Intent, grounding: Grounding, llm: LLMClient
 ) -> AdvisoryBrief:
     data = json.loads(await llm.complete(_SYSTEM, query))
+    model = data["thinking_model"]
+    if model not in REGISTRY:
+        model = DEFAULT_BY_INTENT.get(intent, "systems_thinking")
     return AdvisoryBrief(
         sections=SixSections(**data["sections"]),
-        thinking_model=data["thinking_model"],
+        thinking_model=model,
         finding=Finding(**data["finding"]),
     )
