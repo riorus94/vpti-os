@@ -38,3 +38,11 @@ def test_revoked_regulation_returns_refusal() -> None:
     res = asyncio.run(answer("wajib LS?", _ctx(), g, StubLLM("x")))
     assert isinstance(res, Refusal)
     assert res.reason is GapReason.REVOKED_REGULATION
+
+
+def test_in_force_grounding_returns_compliance_answer() -> None:
+    g = Grounding(chunks=[_chunk(RegulationStatus.BERLAKU)])
+    res = asyncio.run(answer("wajib LS?", _ctx(), g, StubLLM("Ya, wajib LS per Permendag X Pasal 3.")))
+    assert isinstance(res, ComplianceAnswer)
+    assert res.text == "Ya, wajib LS per Permendag X Pasal 3."
+    assert res.citations == g.chunks

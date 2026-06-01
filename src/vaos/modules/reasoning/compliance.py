@@ -11,10 +11,14 @@ this module never touches the Store. No thinking model is used for compliance.
 
 from vaos.domain.context import Context
 from vaos.domain.grounding import Grounding, RegulationStatus
-from vaos.domain.output import ComplianceResult, GapReason, Refusal
+from vaos.domain.output import ComplianceAnswer, ComplianceResult, GapReason, Refusal
 from vaos.ports.llm import LLMClient
 
 _REVOKED = {RegulationStatus.DICABUT, RegulationStatus.DIUBAH}
+_SYSTEM = (
+    "Answer the compliance question ONLY from the provided grounding. Cite pasal "
+    "text verbatim in Bahasa Indonesia. Do not use outside knowledge."
+)
 
 
 async def answer(query: str, context: Context, grounding: Grounding, llm: LLMClient) -> ComplianceResult:
@@ -30,4 +34,8 @@ async def answer(query: str, context: Context, grounding: Grounding, llm: LLMCli
             reason=GapReason.REVOKED_REGULATION,
             message="Regulasi terkait sudah dicabut/diubah. Diteruskan ke peninjau.",
         )
-    raise NotImplementedError("vaos-mvp/06 — grounded answer next")
+    prompt = f"Pertanyaan: {query}\n\nGrounding:\n" + "\n".join(
+        f"[{c.reference}] {c.text}" for c in grounding.chunks
+    )
+    text = await llm.complete(_SYSTEM, prompt)
+    return ComplianceAnswer(text=text, citations=grounding.chunks)
