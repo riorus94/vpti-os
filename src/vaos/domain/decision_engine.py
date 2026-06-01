@@ -2,21 +2,35 @@
 
 No I/O. Reads flags only. A compliant / not_applicable / unknown Finding with no
 risks or opportunities produces zero Actions. Lives in domain/ so it is unit-tested
-directly, with no mocks. Dedup keys are computed by the caller (it knows the Context).
+directly, with no mocks. The Action dedup key is set later by the execution layer
+(it needs the Context); see ADR-0008.
 """
 
 from vaos.domain.action import Action, ActionType
 from vaos.domain.finding import ComplianceStatus, Finding
 
 
-def decide(finding: Finding, dedup_key_for: object = None) -> list[Action]:
-    """Map a Finding to Actions. `dedup_key_for` is a placeholder for the
-    key-derivation hook wired in by the pipeline (vaos-phase2-execution/01)."""
-    raise NotImplementedError(
-        "vaos-phase2-execution/01 — implement the pure Finding -> [Action] rules:\n"
-        "  non_compliant -> REMEDIATION; each risk -> RISK_FLAG; "
-        "each opportunity -> STRATEGY_ASSIGNMENT; else -> []"
-    )
+def decide(finding: Finding) -> list[Action]:
+    """Map a Finding's typed flags to proposed Actions (in declaration order:
+    remediation, then risk flags, then opportunity assignments)."""
+    actions: list[Action] = []
 
+    if finding.compliance_status is ComplianceStatus.NON_COMPLIANT:
+        actions.append(
+            Action(type=ActionType.REMEDIATION, summary="Remediate non-compliant case")
+        )
 
-__all__ = ["decide", "Action", "ActionType", "ComplianceStatus", "Finding"]
+    for risk in finding.risks:
+        actions.append(
+            Action(type=ActionType.RISK_FLAG, summary=f"Risk: {risk.description}")
+        )
+
+    for opportunity in finding.opportunities:
+        actions.append(
+            Action(
+                type=ActionType.STRATEGY_ASSIGNMENT,
+                summary=f"Opportunity: {opportunity.description}",
+            )
+        )
+
+    return actions

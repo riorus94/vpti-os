@@ -28,6 +28,8 @@ class Action(BaseModel):
     type: ActionType
     summary: str
     state: ActionState = ActionState.PROPOSED
-    dedup_key: str                 # ADR-0008: confirmed Context + type + regulation ref
+    # Empty until the execution layer keys it (ADR-0008): the Decision Engine is
+    # pure on the Finding and does not know the Context needed to derive the key.
+    dedup_key: str = ""            # confirmed Context + type + regulation ref
     occurrences: int = 1           # bumped on dedup attach, never silently dropped
     linear_task_id: str | None = None
