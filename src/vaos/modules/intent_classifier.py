@@ -9,4 +9,14 @@ from vaos.ports.llm import LLMClient
 
 
 async def classify(query: str, context: Context, llm: LLMClient) -> Intent:
-    raise NotImplementedError("vaos-mvp/03")
+    label = (await llm.complete(_SYSTEM, query)).strip().lower()
+    try:
+        return Intent(label)
+    except ValueError:
+        return Intent.COMPLIANCE  # safest fallback: grounded-or-refuse, no web
+
+
+_SYSTEM = (
+    "Classify the request into exactly one intent. Reply with ONLY one word: "
+    "compliance | risk | opportunity | strategy."
+)
