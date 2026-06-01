@@ -10,9 +10,11 @@ this module never touches the Store. No thinking model is used for compliance.
 """
 
 from vaos.domain.context import Context
-from vaos.domain.grounding import Grounding
+from vaos.domain.grounding import Grounding, RegulationStatus
 from vaos.domain.output import ComplianceResult, GapReason, Refusal
 from vaos.ports.llm import LLMClient
+
+_REVOKED = {RegulationStatus.DICABUT, RegulationStatus.DIUBAH}
 
 
 async def answer(query: str, context: Context, grounding: Grounding, llm: LLMClient) -> ComplianceResult:
@@ -22,4 +24,10 @@ async def answer(query: str, context: Context, grounding: Grounding, llm: LLMCli
             reason=GapReason.EMPTY_GROUNDING,
             message="Tidak ditemukan di basis pengetahuan. Diteruskan ke peninjau.",
         )
-    raise NotImplementedError("vaos-mvp/06 — grounded answer + dicabut refusal next")
+    if any(c.status in _REVOKED for c in grounding.chunks):
+        # Regulation revoked/amended -> do not assert it as current (ADR-0002).
+        return Refusal(
+            reason=GapReason.REVOKED_REGULATION,
+            message="Regulasi terkait sudah dicabut/diubah. Diteruskan ke peninjau.",
+        )
+    raise NotImplementedError("vaos-mvp/06 — grounded answer next")

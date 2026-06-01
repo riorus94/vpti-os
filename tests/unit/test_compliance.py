@@ -8,9 +8,16 @@ import asyncio
 
 from vaos.adapters.llm.stub import StubLLM
 from vaos.domain.context import Context
-from vaos.domain.grounding import Grounding
-from vaos.domain.output import GapReason, Refusal
+from vaos.domain.grounding import Grounding, GroundingChunk, GroundingSource, RegulationStatus
+from vaos.domain.output import ComplianceAnswer, GapReason, Refusal
 from vaos.modules.reasoning.compliance import answer
+
+
+def _chunk(status: RegulationStatus) -> GroundingChunk:
+    return GroundingChunk(
+        source=GroundingSource.PASAL_ID, reference="Permendag X Pasal 3",
+        text="LS wajib untuk komoditas ini.", score=0.95, status=status,
+    )
 
 
 def _ctx() -> Context:
@@ -24,3 +31,10 @@ def test_empty_grounding_returns_refusal() -> None:
     res = asyncio.run(answer("HS 3824.99 wajib LS?", _ctx(), Grounding(chunks=[]), StubLLM("x")))
     assert isinstance(res, Refusal)
     assert res.reason is GapReason.EMPTY_GROUNDING
+
+
+def test_revoked_regulation_returns_refusal() -> None:
+    g = Grounding(chunks=[_chunk(RegulationStatus.DICABUT)])
+    res = asyncio.run(answer("wajib LS?", _ctx(), g, StubLLM("x")))
+    assert isinstance(res, Refusal)
+    assert res.reason is GapReason.REVOKED_REGULATION
