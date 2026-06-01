@@ -52,6 +52,17 @@ def test_amended_regulation_names_superseding_reference() -> None:
     assert "Permendag Y Pasal 5" in res.message
 
 
+def test_no_thinking_model_for_compliance() -> None:
+    # AC #5: no thinking model is invoked for compliance intent. Compliance has no
+    # registered default, and the reasoning module never imports the registry —
+    # guarding against future drift toward a thinking-model path for compliance.
+    from vaos.domain.intent import Intent
+    from vaos.modules.reasoning import compliance, thinking_models
+
+    assert Intent.COMPLIANCE not in thinking_models.DEFAULT_BY_INTENT
+    assert "thinking_models" not in vars(compliance)
+
+
 def test_in_force_grounding_returns_compliance_answer() -> None:
     g = Grounding(chunks=[_chunk(RegulationStatus.BERLAKU)])
     res = asyncio.run(answer("wajib LS?", _ctx(), g, StubLLM("Ya, wajib LS per Permendag X Pasal 3.")))
