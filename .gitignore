@@ -7,6 +7,9 @@ venv/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
 
 # Secrets & local config
 .env
