@@ -18,6 +18,12 @@ build/
 *.faiss
 data/index/
 
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+
 # OS
 .DS_Store
 Thumbs.db

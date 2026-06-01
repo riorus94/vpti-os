@@ -1,0 +1,38 @@
+# Local dev stack: app + PostgreSQL (durable store, vaos-mvp/09) + Redis (queue/cache).
+# Copy .env.example -> .env first. In-container, set DATABASE_URL host to `db`:
+#   DATABASE_URL=postgresql+psycopg://vaos:vaos@db:5432/vaos
+services:
+  app:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: vaos
+      POSTGRES_USER: vaos
+      POSTGRES_PASSWORD: vaos
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vaos"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:

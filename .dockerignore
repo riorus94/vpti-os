@@ -1,0 +1,25 @@
+# Keep the build context lean — exclude everything not needed at runtime.
+.git
+.gitignore
+.venv
+venv
+__pycache__/
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg-info
+
+# Secrets — provided at runtime via env_file, never baked into the image
+.env
+
+# Dev-only / non-runtime
+tests/
+.scratch/
+docs/
+README.md
+*.md
+
+# Local artifacts
+data/
+*.faiss
