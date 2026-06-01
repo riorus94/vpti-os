@@ -5,14 +5,28 @@ brief by construction, and emits a typed Finding. Returns an AdvisoryBrief — n
 tuples, no Store, only the LLM port.
 """
 
+import json
+
 from vaos.domain.context import Context
+from vaos.domain.finding import Finding
 from vaos.domain.grounding import Grounding
 from vaos.domain.intent import Intent
-from vaos.domain.output import AdvisoryBrief
+from vaos.domain.output import AdvisoryBrief, SixSections
 from vaos.ports.llm import LLMClient
+
+_SYSTEM = (
+    "Produce an advisory brief as JSON with keys: thinking_model, sections "
+    "(ringkasan_eksekutif, konteks, analisis, risiko, peluang, rekomendasi), "
+    "finding (compliance_status, risks, opportunities)."
+)
 
 
 async def brief(
     query: str, context: Context, intent: Intent, grounding: Grounding, llm: LLMClient
 ) -> AdvisoryBrief:
-    raise NotImplementedError("vaos-mvp/07 — return AdvisoryBrief(sections, thinking_model, finding)")
+    data = json.loads(await llm.complete(_SYSTEM, query))
+    return AdvisoryBrief(
+        sections=SixSections(**data["sections"]),
+        thinking_model=data["thinking_model"],
+        finding=Finding(**data["finding"]),
+    )
