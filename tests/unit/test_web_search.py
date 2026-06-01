@@ -1,9 +1,22 @@
-"""Web Search Strategy routing (vaos-mvp/08). Pure. Cover the compliance guardrail:
-compliance/regulation/internal-process ALWAYS -> internal, never web."""
+"""Web Search Strategy routing (#8). Pure. The compliance guardrail is the
+critical behavior: compliance/regulation/internal-process never reach the web."""
 
-import pytest
+from vaos.domain.intent import Intent
+from vaos.modules.web_search import SearchMode, mode_for
 
 
-@pytest.mark.skip(reason="implement in vaos-mvp/08")
-def test_compliance_never_routes_to_web() -> None:
-    ...
+def test_compliance_never_uses_web() -> None:
+    assert mode_for(Intent.COMPLIANCE) is SearchMode.INTERNAL
+
+
+def test_strategy_uses_hybrid() -> None:
+    assert mode_for(Intent.STRATEGY) is SearchMode.HYBRID
+
+
+def test_opportunity_uses_hybrid() -> None:
+    assert mode_for(Intent.OPPORTUNITY) is SearchMode.HYBRID
+
+
+def test_risk_uses_internal() -> None:
+    # risk is the INTERNAL default — this guards that default, no web for risk.
+    assert mode_for(Intent.RISK) is SearchMode.INTERNAL

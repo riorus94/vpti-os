@@ -18,4 +18,6 @@ class SearchMode(StrEnum):
 
 def mode_for(intent: Intent) -> SearchMode:
     """Pure routing. Compliance is always INTERNAL (guardrail)."""
-    raise NotImplementedError("vaos-mvp/08 — incl. guardrail test")
+    if intent in (Intent.STRATEGY, Intent.OPPORTUNITY):
+        return SearchMode.HYBRID
+    return SearchMode.INTERNAL
