@@ -8,7 +8,7 @@ See [CONTEXT.md](CONTEXT.md) for the domain glossary, [docs/PRD.md](docs/PRD.md)
 
 ### Issue tracker
 
-Issues and PRDs live as local markdown under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
+Issues live as GitHub issues at [riorus94/vpti-os](https://github.com/riorus94/vpti-os/issues), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
