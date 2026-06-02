@@ -31,6 +31,34 @@ def test_dedup_key_differs_on_regulation() -> None:
     assert k1 != k2
 
 
+def test_dedup_key_differs_on_action_type() -> None:
+    # Same Context + reg, different action type => distinct keys, so a risk flag
+    # never dedups against a remediation for the same case (ADR-0008).
+    k1 = dedup_key(_ctx(), ActionType.REMEDIATION, "Permendag X")
+    k2 = dedup_key(_ctx(), ActionType.RISK_FLAG, "Permendag X")
+    assert k1 != k2
+
+
+def test_dedup_key_differs_on_context_field() -> None:
+    # The key is derived from the confirmed Context, not the raw query: two
+    # Contexts differing only in objective must not collide.
+    other = _ctx().model_copy(update={"objective": "cek wajib lain"})
+    k1 = dedup_key(_ctx(), ActionType.REMEDIATION, "Permendag X")
+    k2 = dedup_key(other, ActionType.REMEDIATION, "Permendag X")
+    assert k1 != k2
+
+
+def test_dedup_key_normalizes_case_and_whitespace() -> None:
+    # ADR-0008 normalization: casing/padding differences collapse so the same
+    # case keys identically (otherwise dedup would silently miss duplicates).
+    base = _ctx()
+    padded = Context(client="  KSO ", objective="CEK WAJIB VPTI", audience="Importer",
+                     decision_required="LANJUT?", constraints="-", asker_id=base.asker_id)
+    k1 = dedup_key(base, ActionType.REMEDIATION, "Permendag X Pasal 3")
+    k2 = dedup_key(padded, ActionType.REMEDIATION, "  permendag x pasal 3 ")
+    assert k1 == k2
+
+
 def test_approver_files_action() -> None:
     a = Action(type=ActionType.REMEDIATION, summary="remediate")
     res = asyncio.run(approve(a, approver_id=7, approvers={7}, hook=StubExecutionHook()))

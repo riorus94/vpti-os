@@ -26,6 +26,23 @@ def test_strategy_label_classifies_strategy() -> None:
     assert intent is Intent.STRATEGY
 
 
+def test_risk_label_classifies_risk() -> None:
+    intent = asyncio.run(classify("apa risikonya?", _ctx(), StubLLM("risk")))
+    assert intent is Intent.RISK
+
+
+def test_opportunity_label_classifies_opportunity() -> None:
+    intent = asyncio.run(classify("ada peluang ekspansi?", _ctx(), StubLLM("opportunity")))
+    assert intent is Intent.OPPORTUNITY
+
+
+def test_label_is_normalized_before_mapping() -> None:
+    # The classifier strips + lowercases the LLM label, so casing/whitespace from
+    # the model must not leak through as an unknown -> COMPLIANCE misclassification.
+    intent = asyncio.run(classify("haruskah ekspansi?", _ctx(), StubLLM("  STRATEGY\n")))
+    assert intent is Intent.STRATEGY
+
+
 def test_unknown_label_defaults_to_compliance() -> None:
     intent = asyncio.run(classify("???", _ctx(), StubLLM("banana nonsense")))
     assert intent is Intent.COMPLIANCE

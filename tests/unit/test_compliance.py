@@ -52,6 +52,19 @@ def test_amended_regulation_names_superseding_reference() -> None:
     assert "Permendag Y Pasal 5" in res.message
 
 
+def test_mixed_grounding_with_any_revoked_chunk_refuses() -> None:
+    # A revoked/amended chunk anywhere in the grounding must force a refusal —
+    # an in-force chunk alongside it must not let the answer slip through (ADR-0002).
+    g = Grounding(chunks=[
+        _chunk(RegulationStatus.BERLAKU),
+        _chunk(RegulationStatus.DICABUT, superseded_by="Permendag Y Pasal 5"),
+    ])
+    res = asyncio.run(answer("wajib LS?", _ctx(), g, StubLLM("should not be used")))
+    assert isinstance(res, Refusal)
+    assert res.reason is GapReason.REVOKED_REGULATION
+    assert res.superseding_reference == "Permendag Y Pasal 5"
+
+
 def test_no_thinking_model_for_compliance() -> None:
     # AC #5: no thinking model is invoked for compliance intent. Compliance has no
     # registered default, and the reasoning module never imports the registry —

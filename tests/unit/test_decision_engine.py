@@ -53,6 +53,26 @@ def test_combined_finding_produces_all_applicable_actions() -> None:
     assert len(actions) == 3
 
 
+def test_combined_finding_preserves_declaration_order() -> None:
+    # The docstring guarantees a fixed order: remediation, then risk flags (in
+    # finding order), then opportunity assignments (in finding order). Reviewers
+    # rely on this ordering, so assert the sequence, not just the set.
+    finding = Finding(
+        compliance_status=ComplianceStatus.NON_COMPLIANT,
+        risks=[Risk(description="late LS", severity="high"),
+               Risk(description="HS mismatch", severity="med")],
+        opportunities=[Opportunity(description="new commodity"),
+                       Opportunity(description="new lane")],
+    )
+    assert [a.type for a in decide(finding)] == [
+        ActionType.REMEDIATION,
+        ActionType.RISK_FLAG,
+        ActionType.RISK_FLAG,
+        ActionType.STRATEGY_ASSIGNMENT,
+        ActionType.STRATEGY_ASSIGNMENT,
+    ]
+
+
 def test_actions_start_proposed_and_unkeyed() -> None:
     # Decision Engine is pure on the Finding; the dedup key is set later by the
     # execution layer (it needs the Context). ADR-0008.

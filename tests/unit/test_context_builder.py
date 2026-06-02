@@ -33,6 +33,16 @@ def test_confirm_rejects_blank_field() -> None:
         confirm(_inferred(constraints="   "), asker_id=1)
 
 
+@pytest.mark.parametrize(
+    "field", ["client", "objective", "audience", "decision_required", "constraints"],
+)
+def test_confirm_rejects_any_blank_field(field: str) -> None:
+    # The "never output without Context" invariant must hold for every one of the
+    # five fields, not just constraints — and empty string counts as missing too.
+    with pytest.raises(ValueError):
+        confirm(_inferred(**{field: ""}), asker_id=1)
+
+
 def test_infer_parses_json_into_inferred_context() -> None:
     payload = json.dumps({
         "client": "KSO", "objective": "cek wajib VPTI", "audience": "importer",
