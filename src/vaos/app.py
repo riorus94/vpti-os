@@ -15,6 +15,7 @@ from vaos.config import Settings, settings
 from vaos.modules.retrieval.router import RetrievalRouter
 from vaos.pipeline.orchestrator import Orchestrator
 from vaos.ports.llm import LLMClient
+from vaos.ports.retrieval import InternalSource
 from vaos.ports.store import Store
 
 app = FastAPI(title="VAOS", version="0.1.0")
@@ -38,6 +39,20 @@ def _build_llm(settings: Settings) -> LLMClient:
     raise ValueError(f"unknown llm_provider: {settings.llm_provider!r}")
 
 
+def _build_internal_source(settings: Settings) -> InternalSource:
+    """Choose the internal (Vault) retrieval leg. FAISS + e5 are imported lazily so
+    the base app stays runnable without the optional [rag] dependencies installed."""
+    if settings.internal_source == "empty":
+        return EmptyInternalSource()
+    if settings.internal_source == "faiss":
+        from vaos.adapters.embeddings.multilingual_e5 import MultilingualE5Embedder
+        from vaos.modules.retrieval.faiss_vault import FaissVault
+
+        embedder = MultilingualE5Embedder(settings.embedding_model)
+        return FaissVault(embedder, settings.faiss_index_path)
+    raise ValueError(f"unknown internal_source: {settings.internal_source!r}")
+
+
 def build_bot(
     settings: Settings,
     *,
@@ -47,12 +62,12 @@ def build_bot(
     """Composition root: assemble Settings -> LLM -> RetrievalRouter -> Store ->
     Orchestrator -> TelegramBot. Wiring only — no business logic lives here.
 
-    The retrieval legs are the interim empty sources; vaos-mvp/05 (PasalIdClient)
-    and vaos-mvp/04 (FaissVault) swap in the real adapters. The store is in-memory
-    until vaos-mvp/09 wires Postgres. llm/store are overridable for tests.
+    The internal (Vault) leg is config-selected (empty | faiss); the regulation leg
+    stays the interim empty source until vaos-mvp/05 (PasalIdClient). The store is
+    in-memory until vaos-mvp/09 wires Postgres. llm/store are overridable for tests.
     """
     llm = llm or _build_llm(settings)
     store = store or InMemoryStore()
-    router = RetrievalRouter(regs=EmptyRegulationSource(), vault=EmptyInternalSource())
+    router = RetrievalRouter(regs=EmptyRegulationSource(), vault=_build_internal_source(settings))
     orchestrator = Orchestrator(llm=llm, store=store, router=router)
     return TelegramBot(settings, llm=llm, orchestrator=orchestrator)

@@ -54,6 +54,12 @@ async def test_query_below_threshold_returns_empty(tmp_path: Path) -> None:
     assert grounding.is_empty
 
 
+async def test_query_before_build_returns_empty(tmp_path: Path) -> None:
+    # Wired but not yet indexed: internal grounding is simply absent (safe), not a crash.
+    faiss_vault = FaissVault(FakeEmbedder(), index_path=str(tmp_path / "missing.faiss"))
+    assert (await faiss_vault.query("dicabut")).is_empty
+
+
 async def test_query_loads_persisted_index_without_rebuilding(tmp_path: Path) -> None:
     index_path = str(tmp_path / "v.faiss")
     FaissVault(FakeEmbedder(), index_path=index_path).build(str(_vault(tmp_path)))

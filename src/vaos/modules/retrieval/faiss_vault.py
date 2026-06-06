@@ -62,6 +62,8 @@ class FaissVault:
         self._index, self._meta = index, meta
 
     async def query(self, text: str, top_k: int = 5) -> Grounding:
+        if self._index is None and not self._index_path.exists():
+            return Grounding(chunks=[])  # not indexed yet: internal grounding absent (safe)
         index, meta = self._load()
         if index.ntotal == 0:
             return Grounding(chunks=[])

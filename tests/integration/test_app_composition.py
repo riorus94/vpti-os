@@ -11,8 +11,9 @@ import pytest
 
 from vaos.adapters.llm.azure_openai import AzureOpenAILLM
 from vaos.adapters.llm.stub import StubLLM
+from vaos.adapters.retrieval.stub import EmptyInternalSource
 from vaos.adapters.store.memory import InMemoryStore
-from vaos.app import _build_llm, build_bot
+from vaos.app import _build_internal_source, _build_llm, build_bot
 from vaos.config import Settings
 
 _CTX = json.dumps({
@@ -37,6 +38,16 @@ def test_build_llm_selects_adapter_by_provider() -> None:
     )
     with pytest.raises(ValueError):
         _build_llm(Settings(llm_provider="bogus"))
+
+
+def test_build_internal_source_selects_leg_by_config() -> None:
+    from vaos.modules.retrieval.faiss_vault import FaissVault
+
+    empty = _build_internal_source(Settings(internal_source="empty"))
+    assert isinstance(empty, EmptyInternalSource)
+    assert isinstance(_build_internal_source(Settings(internal_source="faiss")), FaissVault)
+    with pytest.raises(ValueError):
+        _build_internal_source(Settings(internal_source="bogus"))
 
 
 async def test_composition_root_assembles_runnable_bot() -> None:
