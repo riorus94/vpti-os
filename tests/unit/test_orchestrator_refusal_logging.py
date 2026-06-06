@@ -31,6 +31,23 @@ def test_empty_grounding_refusal_logs_knowledge_gap_signal() -> None:
     assert payload["context_id"] == "ctx-1"
 
 
+def test_source_unavailable_refusal_is_not_recorded_as_knowledge_gap() -> None:
+    # ADR-0002: 'regulation source down' is an ops failure, not missing content.
+    # It must NOT pollute the Knowledge-Gap backlog (the vault owner can't fix it),
+    # but it IS logged as a distinct event for ops/alerting.
+    store = InMemoryStore()
+    orch = Orchestrator(llm=StubLLM(""), store=store)
+    refusal = Refusal(reason=GapReason.SOURCE_UNAVAILABLE, message="…")
+
+    asyncio.run(orch.log_refusal(refusal, query="wajib LS?", context_id="ctx-3"))
+
+    assert asyncio.run(store.knowledge_gaps()) == []
+    events = asyncio.run(store.events())
+    assert len(events) == 1
+    kind, _ = events[0]
+    assert kind == "source_unavailable"
+
+
 def test_revoked_regulation_refusal_logs_stale_regulation_with_superseding_reference() -> None:
     store = InMemoryStore()
     orch = Orchestrator(llm=StubLLM(""), store=store)

@@ -14,8 +14,9 @@ from vaos.domain.grounding import GroundingChunk
 
 
 class GapReason(StrEnum):
-    EMPTY_GROUNDING = "empty_grounding"        # nothing retrieved (ADR-0001)
-    REVOKED_REGULATION = "revoked_regulation"  # dicabut/diubah (ADR-0002)
+    EMPTY_GROUNDING = "empty_grounding"          # nothing retrieved (ADR-0001)
+    REVOKED_REGULATION = "revoked_regulation"    # dicabut/diubah (ADR-0002)
+    SOURCE_UNAVAILABLE = "source_unavailable"    # regulation source unreachable (ADR-0002)
 
 
 class ComplianceAnswer(BaseModel):
@@ -26,12 +27,28 @@ class ComplianceAnswer(BaseModel):
 
 
 class Refusal(BaseModel):
-    """Compliance refusal — never an ungrounded answer (ADR-0001). Triggers a
-    Knowledge-Gap log in the orchestrator."""
+    """Compliance refusal — never an ungrounded answer (ADR-0001). The Refusal
+    classifies itself so the orchestrator stays passive plumbing: a new GapReason
+    decides its own routing here, not in the pipeline."""
 
     reason: GapReason
     message: str
     superseding_reference: str | None = None  # set when REVOKED_REGULATION
+
+    @property
+    def is_knowledge_gap(self) -> bool:
+        """Whether this refusal belongs in the Knowledge-Gap backlog. A source
+        being unreachable is an ops failure, not missing content (ADR-0002)."""
+        return self.reason is not GapReason.SOURCE_UNAVAILABLE
+
+    @property
+    def event_kind(self) -> str:
+        """The structured event-log kind for this refusal."""
+        return {
+            GapReason.EMPTY_GROUNDING: "knowledge_gap",
+            GapReason.REVOKED_REGULATION: "stale_regulation",
+            GapReason.SOURCE_UNAVAILABLE: "source_unavailable",
+        }[self.reason]
 
 
 class SixSections(BaseModel):

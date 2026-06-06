@@ -14,7 +14,7 @@ returns a Refusal, the orchestrator calls store.record_knowledge_gap(...). A
 Refusal the orchestrator fails to handle is a visible bug, not a silent one.
 """
 
-from vaos.domain.output import GapReason, Refusal
+from vaos.domain.output import Refusal
 from vaos.ports.llm import LLMClient
 from vaos.ports.store import Store
 
@@ -31,10 +31,12 @@ class Orchestrator:
         # A Refusal the orchestrator fails to log would be a silent gap — the exact
         # failure mode ADR-0001 exists to prevent. Two writes by design: the
         # Knowledge-Gap backlog feeds reviewers; the event log feeds analytics.
-        await self._store.record_knowledge_gap(query, context_id)
-        kind = "stale_regulation" if refusal.reason is GapReason.REVOKED_REGULATION else "knowledge_gap"
+        # The Refusal classifies itself (domain/output.py): a source-unavailable
+        # refusal is an ops failure, not missing content, so it skips the backlog.
+        if refusal.is_knowledge_gap:
+            await self._store.record_knowledge_gap(query, context_id)
         await self._store.log_event(
-            kind,
+            refusal.event_kind,
             {
                 "reason": refusal.reason.value,
                 "query": query,

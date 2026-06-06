@@ -38,6 +38,10 @@ _Avoid_: source, context (reserve "Context" for the five-field frame)
 A `compliance` **Query** for which retrieval returned no **Grounding**. The system refuses, escalates, and logs the gap so the vault owner knows what to add.
 _Avoid_: miss, no-result
 
+**Source Unavailable**:
+A `compliance` refusal raised because the regulation source (`pasal-id`) could not be reached — an operational failure, not missing content. Distinct from a **Knowledge Gap**: it is not added to the gap backlog (nothing for the vault owner to fix), and the internal **Vault** is never substituted for the missing regulation text (ADR-0002).
+_Avoid_: outage, error, knowledge gap (reserve that for missing content)
+
 **Regulation Status**:
 Whether a cited regulation is currently in force — `berlaku` (in force), `diubah` (amended), or `dicabut` (revoked). Sourced from `pasal-id`. A **Compliance Answer** must not assert an obligation from a regulation that is `dicabut`/`diubah` without naming the superseding reference.
 
