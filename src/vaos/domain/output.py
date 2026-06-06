@@ -46,6 +46,18 @@ class SixSections(BaseModel):
     rekomendasi: str
 
 
+class AdvisoryPayload(BaseModel):
+    """The raw shape an LLM returns for an Advisory Brief, before the model name
+    is checked against the registry. `thinking_model` is a free str on purpose:
+    an unregistered name is a domain fallback (-> per-intent default), NOT a parse
+    failure. Promoted to AdvisoryBrief by advisory.brief — mirrors
+    InferredContext -> Context."""
+
+    sections: SixSections
+    thinking_model: str
+    finding: Finding
+
+
 class AdvisoryBrief(BaseModel):
     sections: SixSections
     thinking_model: str   # named in the output by construction (Q5)

@@ -43,6 +43,14 @@ def test_unregistered_model_falls_back_to_intent_default() -> None:
     assert res.thinking_model == DEFAULT_BY_INTENT[Intent.RISK]
 
 
+def test_malformed_llm_output_raises_format_error() -> None:
+    import pytest
+
+    from vaos.modules.llm_json import LLMFormatError
+    with pytest.raises(LLMFormatError):
+        asyncio.run(brief("q", _ctx(), Intent.RISK, Grounding(chunks=[]), StubLLM("not json")))
+
+
 def test_brief_emits_finding_from_llm() -> None:
     payload = _payload(
         "systems_thinking",
