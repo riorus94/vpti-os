@@ -60,5 +60,5 @@ strict = true
 packages = ["vaos"]
 
 [[tool.mypy.overrides]]
-module = ["faiss.*"]
+module = ["faiss.*", "sentence_transformers.*"]
 ignore_missing_imports = true
