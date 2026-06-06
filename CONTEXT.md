@@ -26,6 +26,10 @@ _Avoid_: brief, report
 The full six-section structured output — `Executive Summary, Context, Analysis, Risk, Opportunity, Recommendation` — produced for `risk`, `opportunity`, and `strategy` intents. A thinking model is applied to produce it.
 _Avoid_: answer, summary, memo
 
+**Advisory Payload**:
+The raw, unvalidated shape an LLM returns for an **Advisory Brief** — sections, a *proposed* thinking-model name, and a **Finding** — before the model name is checked against the registry. Becomes an **Advisory Brief** once validated (an unregistered model falls back to the per-intent default). Mirrors the **Inferred Context** → **Context** promotion: proposed-then-validated, never the validated type holding a raw value.
+_Avoid_: response, raw brief, json
+
 **Grounding**:
 The retrieved knowledge-base notes that a **Compliance Answer** is built from and cited against. A compliance output with no Grounding is not produced (see ADR-0001).
 _Avoid_: source, context (reserve "Context" for the five-field frame)
