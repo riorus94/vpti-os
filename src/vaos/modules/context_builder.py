@@ -4,9 +4,8 @@ Inference is behind the LLMClient port (stubbable); validation is pure
 (domain/context.py). The pipeline never proceeds without a confirmed Context.
 """
 
-import json
-
 from vaos.domain.context import Context, InferredContext
+from vaos.modules.llm_json import complete_json
 from vaos.ports.llm import LLMClient
 
 _SYSTEM = (
@@ -16,9 +15,10 @@ _SYSTEM = (
 
 
 async def infer(query: str, llm: LLMClient) -> InferredContext:
-    """Propose a five-field Context from the raw query, to show the user."""
-    raw = await llm.complete(_SYSTEM, query)
-    return InferredContext(**json.loads(raw))
+    """Propose a five-field Context from the raw query, to show the user.
+    A malformed completion surfaces as LLMFormatError (the caller decides what
+    to tell the user) — never a silent or half-built Context."""
+    return await complete_json(llm, _SYSTEM, query, InferredContext)
 
 
 def confirm(inferred: InferredContext, asker_id: int) -> Context:

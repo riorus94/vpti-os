@@ -32,6 +32,10 @@ class Grounding(BaseModel):
     """Ordered evidence. Empty => compliance must refuse (ADR-0001)."""
 
     chunks: list[GroundingChunk] = []
+    regulation_unavailable: bool = False
+    """The regulation source could not be reached (ADR-0002). Distinct from
+    empty: compliance must refuse with a source-unavailable signal, and the
+    internal leg must never be substituted for the missing regulation text."""
 
     @property
     def is_empty(self) -> bool:

@@ -26,6 +26,10 @@ _Avoid_: brief, report
 The full six-section structured output — `Executive Summary, Context, Analysis, Risk, Opportunity, Recommendation` — produced for `risk`, `opportunity`, and `strategy` intents. A thinking model is applied to produce it.
 _Avoid_: answer, summary, memo
 
+**Advisory Payload**:
+The raw, unvalidated shape an LLM returns for an **Advisory Brief** — sections, a *proposed* thinking-model name, and a **Finding** — before the model name is checked against the registry. Becomes an **Advisory Brief** once validated (an unregistered model falls back to the per-intent default). Mirrors the **Inferred Context** → **Context** promotion: proposed-then-validated, never the validated type holding a raw value.
+_Avoid_: response, raw brief, json
+
 **Grounding**:
 The retrieved knowledge-base notes that a **Compliance Answer** is built from and cited against. A compliance output with no Grounding is not produced (see ADR-0001).
 _Avoid_: source, context (reserve "Context" for the five-field frame)
@@ -33,6 +37,10 @@ _Avoid_: source, context (reserve "Context" for the five-field frame)
 **Knowledge Gap**:
 A `compliance` **Query** for which retrieval returned no **Grounding**. The system refuses, escalates, and logs the gap so the vault owner knows what to add.
 _Avoid_: miss, no-result
+
+**Source Unavailable**:
+A `compliance` refusal raised because the regulation source (`pasal-id`) could not be reached — an operational failure, not missing content. Distinct from a **Knowledge Gap**: it is not added to the gap backlog (nothing for the vault owner to fix), and the internal **Vault** is never substituted for the missing regulation text (ADR-0002).
+_Avoid_: outage, error, knowledge gap (reserve that for missing content)
 
 **Regulation Status**:
 Whether a cited regulation is currently in force — `berlaku` (in force), `diubah` (amended), or `dicabut` (revoked). Sourced from `pasal-id`. A **Compliance Answer** must not assert an obligation from a regulation that is `dicabut`/`diubah` without naming the superseding reference.

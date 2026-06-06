@@ -52,6 +52,17 @@ def test_amended_regulation_names_superseding_reference() -> None:
     assert "Permendag Y Pasal 5" in res.message
 
 
+def test_regulation_unavailable_refuses_with_source_unavailable() -> None:
+    # ADR-0002: pasal-id down. Even with an internal note present, compliance must
+    # NOT answer from the internal leg — it refuses with a source-unavailable signal.
+    note = GroundingChunk(source=GroundingSource.VAULT, reference="note-1",
+                          text="proses internal", score=0.8)
+    g = Grounding(chunks=[note], regulation_unavailable=True)
+    res = asyncio.run(answer("wajib LS?", _ctx(), g, StubLLM("x")))
+    assert isinstance(res, Refusal)
+    assert res.reason is GapReason.SOURCE_UNAVAILABLE
+
+
 def test_no_thinking_model_for_compliance() -> None:
     # AC #5: no thinking model is invoked for compliance intent. Compliance has no
     # registered default, and the reasoning module never imports the registry —

@@ -22,6 +22,13 @@ _SYSTEM = (
 
 
 async def answer(query: str, context: Context, grounding: Grounding, llm: LLMClient) -> ComplianceResult:
+    if grounding.regulation_unavailable:
+        # Regulation source unreachable -> refuse; never answer compliance from the
+        # internal leg alone (ADR-0002). Distinct from a missing-content gap.
+        return Refusal(
+            reason=GapReason.SOURCE_UNAVAILABLE,
+            message="Sumber regulasi sedang tidak dapat diakses. Coba lagi nanti.",
+        )
     if grounding.is_empty:
         # No grounding -> refuse, never answer from model memory (ADR-0001).
         return Refusal(

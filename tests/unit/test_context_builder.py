@@ -42,3 +42,9 @@ def test_infer_parses_json_into_inferred_context() -> None:
     assert isinstance(inferred, InferredContext)
     assert inferred.client == "KSO"
     assert inferred.decision_required == "lanjut impor?"
+
+
+def test_infer_malformed_output_raises_format_error() -> None:
+    from vaos.modules.llm_json import LLMFormatError
+    with pytest.raises(LLMFormatError):
+        asyncio.run(infer("apakah ban truk wajib VPTI?", StubLLM("}{ not json")))

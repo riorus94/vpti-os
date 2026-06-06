@@ -5,13 +5,11 @@ brief by construction, and emits a typed Finding. Returns an AdvisoryBrief — n
 tuples, no Store, only the LLM port.
 """
 
-import json
-
 from vaos.domain.context import Context
-from vaos.domain.finding import Finding
 from vaos.domain.grounding import Grounding
 from vaos.domain.intent import Intent
-from vaos.domain.output import AdvisoryBrief, SixSections
+from vaos.domain.output import AdvisoryBrief, AdvisoryPayload
+from vaos.modules.llm_json import complete_json
 from vaos.modules.reasoning.thinking_models import DEFAULT_BY_INTENT, REGISTRY
 from vaos.ports.llm import LLMClient
 
@@ -25,12 +23,12 @@ _SYSTEM = (
 async def brief(
     query: str, context: Context, intent: Intent, grounding: Grounding, llm: LLMClient
 ) -> AdvisoryBrief:
-    data = json.loads(await llm.complete(_SYSTEM, query))
-    model = data["thinking_model"]
+    payload = await complete_json(llm, _SYSTEM, query, AdvisoryPayload)
+    # Registry validation is a domain decision, applied after the parse: an
+    # unregistered model is a soft fallback, never a parse failure.
+    model = payload.thinking_model
     if model not in REGISTRY:
         model = DEFAULT_BY_INTENT.get(intent, "systems_thinking")
     return AdvisoryBrief(
-        sections=SixSections(**data["sections"]),
-        thinking_model=model,
-        finding=Finding(**data["finding"]),
+        sections=payload.sections, thinking_model=model, finding=payload.finding
     )
