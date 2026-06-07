@@ -70,10 +70,14 @@ class TelegramBot:
 
     async def _poll_once(self, offset: int) -> int:
         """Process one getUpdates batch; return the next offset (last id + 1) so the
-        consumed updates are never re-fetched."""
+        consumed updates are never re-fetched. A failure handling one update yields a
+        polite error reply and still advances — one bad message never kills the loop."""
         assert self._client is not None
         for update in await self._client.get_updates(offset):
-            reply = await self.on_message(update.user_id, update.text)
+            try:
+                reply = await self.on_message(update.user_id, update.text)
+            except Exception:  # noqa: BLE001 — request boundary: never let one message stop polling
+                reply = "Maaf, terjadi kesalahan saat memproses pesan Anda. Coba lagi."
             await self._client.send_message(update.chat_id, reply)
             offset = update.update_id + 1
         return offset

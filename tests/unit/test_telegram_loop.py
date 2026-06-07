@@ -71,6 +71,23 @@ async def test_offset_advances_across_polls_without_reprocessing() -> None:
     assert client.requested_offsets == [0, 6]             # second poll skips the consumed update
 
 
+async def test_poll_once_replies_and_advances_even_when_handler_raises() -> None:
+    # A single bad message must not kill the loop or leave the user with silence.
+    from vaos.config import Settings
+    bot = TelegramBot(
+        Settings(telegram_allowlist="8"),
+        llm=StubLLM("not json — infer will raise LLMFormatError"),
+        orchestrator=FakeOrchestrator(),
+        client=(client := FakeClient([[Update(update_id=10, user_id=8, chat_id=100, text="hi")]])),
+    )
+
+    new_offset = await bot._poll_once(0)
+
+    assert new_offset == 11                  # advanced: the bad update is not reprocessed forever
+    assert len(client.sent) == 1             # an error reply was sent, not silence
+    assert client.sent[0][0] == 100
+
+
 async def test_unauthorized_update_still_replies_and_advances() -> None:
     client = FakeClient([[Update(update_id=3, user_id=999, chat_id=7, text="x")]])
 
