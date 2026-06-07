@@ -54,6 +54,52 @@ def _pasal(status: RegulationStatus = RegulationStatus.BERLAKU) -> GroundingChun
                           text="LS wajib.", score=0.95, status=status)
 
 
+class RecordingWeb:
+    def __init__(self, snippets: list[str] | None = None) -> None:
+        self._snippets = snippets or []
+        self.queries: list[str] = []
+
+    async def search(self, query: str) -> list[str]:
+        self.queries.append(query)
+        return self._snippets
+
+
+_ADVISORY = json.dumps({
+    "thinking_model": "pre_mortem", "sections": _SECTIONS,
+    "finding": {"compliance_status": "not_applicable", "risks": [], "opportunities": []},
+})
+
+
+def test_strategy_intent_incorporates_web_search() -> None:
+    web = RecordingWeb(["tren pasar baja 2026"])
+    orch = Orchestrator(
+        llm=ScriptedLLM(intent="strategy", advisory=_ADVISORY), store=InMemoryStore(),
+        router=RetrievalRouter(regs=FakeSource([]), vault=FakeSource([])), web=web,
+    )
+    asyncio.run(orch.handle("strategi ekspansi?", _ctx(), context_id="ctx-w"))
+    assert web.queries == ["strategi ekspansi?"]   # HYBRID intent fetched the web
+
+
+def test_compliance_never_calls_web() -> None:
+    web = RecordingWeb(["should never be fetched"])
+    orch = Orchestrator(
+        llm=ScriptedLLM(intent="compliance", compliance="Ya, wajib."), store=InMemoryStore(),
+        router=RetrievalRouter(regs=FakeSource([_pasal()]), vault=FakeSource([])), web=web,
+    )
+    asyncio.run(orch.handle("wajib LS?", _ctx(), context_id="ctx-c"))
+    assert web.queries == []   # guardrail: compliance never reaches the web
+
+
+def test_risk_advisory_does_not_call_web() -> None:
+    web = RecordingWeb(["x"])
+    orch = Orchestrator(
+        llm=ScriptedLLM(intent="risk", advisory=_ADVISORY), store=InMemoryStore(),
+        router=RetrievalRouter(regs=FakeSource([]), vault=FakeSource([])), web=web,
+    )
+    asyncio.run(orch.handle("risiko?", _ctx(), context_id="ctx-r"))
+    assert web.queries == []   # risk is INTERNAL (web only for strategy/opportunity)
+
+
 def test_compliance_query_returns_grounded_answer_text() -> None:
     llm = ScriptedLLM(intent="compliance", compliance="Ya, wajib LS per Permendag X Pasal 3.")
     router = RetrievalRouter(regs=FakeSource([_pasal()]), vault=FakeSource([]))
