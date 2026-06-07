@@ -21,6 +21,7 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-asyncio",
+    "aiosqlite",                # SQLite async driver for the dialect-agnostic store test
     "ruff",
     "mypy",
 ]
