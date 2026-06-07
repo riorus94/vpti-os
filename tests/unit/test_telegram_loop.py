@@ -86,7 +86,8 @@ async def test_http_client_parses_text_updates_and_skips_others() -> None:
         return httpx.Response(200, json={"result": [
             {"update_id": 1,
              "message": {"from": {"id": 8}, "chat": {"id": 100}, "text": "halo"}},
-            {"update_id": 2, "message": {"from": {"id": 8}, "chat": {"id": 100}}},  # no text -> skip
+            # next has no text -> skipped by the parser
+            {"update_id": 2, "message": {"from": {"id": 8}, "chat": {"id": 100}}},
         ]})
 
     transport = httpx.MockTransport(handler)
