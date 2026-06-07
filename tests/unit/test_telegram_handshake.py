@@ -35,6 +35,20 @@ def _bot(orch: FakeOrchestrator | None = None) -> TelegramBot:
     )
 
 
+class _BoomLLM:
+    async def complete(self, system: str, prompt: str) -> str:
+        raise AssertionError("the LLM must not be called for a slash command")
+
+
+def test_slash_commands_return_help_without_calling_the_llm() -> None:
+    bot = TelegramBot(
+        Settings(telegram_allowlist="8"), llm=_BoomLLM(), orchestrator=FakeOrchestrator()
+    )
+    start = asyncio.run(bot.on_message(user_id=8, text="/start"))
+    assert "VPTI" in start and "ya/tidak" in start.lower()   # onboarding, not a context prompt
+    assert asyncio.run(bot.on_message(user_id=8, text="/help")) == start
+
+
 def test_unauthorized_sender_is_rejected_without_processing() -> None:
     orch = FakeOrchestrator()
     bot = _bot(orch)
