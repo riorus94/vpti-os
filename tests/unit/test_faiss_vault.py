@@ -86,6 +86,30 @@ async def test_build_uses_passage_role_and_query_uses_query_role(tmp_path: Path)
     assert recorder.calls == ["passage", "query"]
 
 
+async def test_query_reloads_when_index_rebuilt_on_disk(tmp_path: Path) -> None:
+    # The "live bot" instance never calls build(); a separate "indexer" rewrites the
+    # on-disk index. The live instance must pick up the new index without a restart.
+    index_path = str(tmp_path / "v.faiss")
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "a.md").write_text("permendag dicabut", encoding="utf-8")
+
+    live = FaissVault(FakeEmbedder(), index_path=index_path)
+    indexer = FaissVault(FakeEmbedder(), index_path=index_path)
+
+    indexer.build(str(vault))
+    first = await live.query("dicabut")
+    assert first.chunks[0].reference.endswith("a.md")
+
+    # Vault content changes; the indexer rebuilds the on-disk index.
+    (vault / "a.md").unlink()
+    (vault / "b.md").write_text("vpti surveyor", encoding="utf-8")
+    indexer.build(str(vault))
+
+    reloaded = await live.query("surveyor")
+    assert reloaded.chunks[0].reference.endswith("b.md")  # picked up the rebuild, no restart
+
+
 async def test_query_before_build_returns_empty(tmp_path: Path) -> None:
     # Wired but not yet indexed: internal grounding is simply absent (safe), not a crash.
     faiss_vault = FaissVault(FakeEmbedder(), index_path=str(tmp_path / "missing.faiss"))
