@@ -41,7 +41,9 @@ class FaissVault:
         self._index: faiss.Index | None = None
         self._meta: _Meta | None = None
 
-    def build(self, vault_path: str) -> None:
+    def build(self, vault_path: str) -> int:
+        """Embed every *.md note and persist the index + metadata sidecar. Returns
+        the number of notes indexed (0 if the vault has none)."""
         root = Path(vault_path)
         refs: list[str] = []
         texts: list[str] = []
@@ -60,6 +62,7 @@ class FaissVault:
         meta: _Meta = [{"reference": r, "text": t} for r, t in zip(refs, texts, strict=True)]
         self._meta_path.write_text(json.dumps(meta), encoding="utf-8")
         self._index, self._meta = index, meta
+        return len(meta)
 
     async def query(self, text: str, top_k: int = 5) -> Grounding:
         if self._index is None and not self._index_path.exists():
