@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     azure_openai_endpoint: str = ""
     azure_openai_api_key: str = ""
     azure_openai_deployment: str = ""
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-opus-4-8"
 
     # Embeddings (local, on-prem — ADR-0007)
     embedding_model: str = "intfloat/multilingual-e5-large"

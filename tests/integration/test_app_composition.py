@@ -9,6 +9,7 @@ import json
 
 import pytest
 
+from vaos.adapters.llm.anthropic_claude import AnthropicLLM
 from vaos.adapters.llm.azure_openai import AzureOpenAILLM
 from vaos.adapters.llm.stub import StubLLM
 from vaos.adapters.retrieval.stub import EmptyInternalSource
@@ -36,6 +37,7 @@ def test_build_llm_selects_adapter_by_provider() -> None:
     assert isinstance(
         _build_llm(Settings(llm_provider="azure_openai")), AzureOpenAILLM
     )
+    assert isinstance(_build_llm(Settings(llm_provider="anthropic")), AnthropicLLM)
     with pytest.raises(ValueError):
         _build_llm(Settings(llm_provider="bogus"))
 

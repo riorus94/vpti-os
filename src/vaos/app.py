@@ -6,6 +6,7 @@ and Telegram bot. Nothing below this file imports a concrete adapter.
 
 from fastapi import FastAPI
 
+from vaos.adapters.llm.anthropic_claude import AnthropicLLM
 from vaos.adapters.llm.azure_openai import AzureOpenAILLM
 from vaos.adapters.llm.stub import StubLLM
 from vaos.adapters.retrieval.stub import EmptyInternalSource, EmptyRegulationSource
@@ -34,6 +35,8 @@ def _build_llm(settings: Settings) -> LLMClient:
             api_key=settings.azure_openai_api_key,
             deployment=settings.azure_openai_deployment,
         )
+    if settings.llm_provider == "anthropic":
+        return AnthropicLLM(api_key=settings.anthropic_api_key, model=settings.anthropic_model)
     if settings.llm_provider == "stub":
         return StubLLM()
     raise ValueError(f"unknown llm_provider: {settings.llm_provider!r}")

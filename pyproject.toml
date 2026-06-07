@@ -11,6 +11,7 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "python-telegram-bot",      # Telegram interface (long-polling for MVP, ADR-0003 / vaos-mvp/01)
+    "anthropic",                # Claude LLM adapter (ADR-0007)
     "httpx",                    # pasal-id, Tavily, Linear, Azure calls
     "loguru",                   # logging (Feedback Loop, vaos-mvp/09)
     "sqlalchemy",
