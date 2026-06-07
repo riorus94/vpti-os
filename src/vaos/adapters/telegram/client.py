@@ -27,17 +27,22 @@ class TelegramClient(Protocol):
 class HttpTelegramClient:
     def __init__(self, token: str, http: httpx.AsyncClient | None = None) -> None:
         self._base = f"https://api.telegram.org/bot{token}"
-        self._http = http or httpx.AsyncClient(timeout=35.0)
+        self._http = http  # lazily created on first use so assembling a bot opens no socket
+
+    def _client(self) -> httpx.AsyncClient:
+        if self._http is None:
+            self._http = httpx.AsyncClient(timeout=35.0)
+        return self._http
 
     async def get_updates(self, offset: int) -> list[Update]:
-        response = await self._http.get(
+        response = await self._client().get(
             f"{self._base}/getUpdates", params={"offset": offset, "timeout": 30}
         )
         response.raise_for_status()
         return [u for u in map(_parse, response.json().get("result", [])) if u is not None]
 
     async def send_message(self, chat_id: int, text: str) -> None:
-        response = await self._http.post(
+        response = await self._client().post(
             f"{self._base}/sendMessage", json={"chat_id": chat_id, "text": text}
         )
         response.raise_for_status()

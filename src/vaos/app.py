@@ -12,6 +12,7 @@ from vaos.adapters.llm.stub import StubLLM
 from vaos.adapters.retrieval.stub import EmptyInternalSource, EmptyRegulationSource
 from vaos.adapters.store.memory import InMemoryStore
 from vaos.adapters.telegram.bot import TelegramBot
+from vaos.adapters.telegram.client import HttpTelegramClient, TelegramClient
 from vaos.config import Settings, settings
 from vaos.modules.retrieval.router import RetrievalRouter
 from vaos.pipeline.orchestrator import Orchestrator
@@ -61,16 +62,19 @@ def build_bot(
     *,
     llm: LLMClient | None = None,
     store: Store | None = None,
+    client: TelegramClient | None = None,
 ) -> TelegramBot:
     """Composition root: assemble Settings -> LLM -> RetrievalRouter -> Store ->
-    Orchestrator -> TelegramBot. Wiring only — no business logic lives here.
+    Orchestrator -> TelegramBot, with the Telegram transport client. Wiring only —
+    no business logic lives here.
 
     The internal (Vault) leg is config-selected (empty | faiss); the regulation leg
     stays the interim empty source until vaos-mvp/05 (PasalIdClient). The store is
-    in-memory until vaos-mvp/09 wires Postgres. llm/store are overridable for tests.
+    in-memory until vaos-mvp/09 wires Postgres. llm/store/client are overridable for tests.
     """
     llm = llm or _build_llm(settings)
     store = store or InMemoryStore()
+    client = client or HttpTelegramClient(settings.telegram_bot_token)
     router = RetrievalRouter(regs=EmptyRegulationSource(), vault=_build_internal_source(settings))
     orchestrator = Orchestrator(llm=llm, store=store, router=router)
-    return TelegramBot(settings, llm=llm, orchestrator=orchestrator)
+    return TelegramBot(settings, llm=llm, orchestrator=orchestrator, client=client)
