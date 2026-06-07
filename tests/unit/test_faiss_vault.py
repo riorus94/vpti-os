@@ -10,12 +10,34 @@ from vaos.modules.retrieval.faiss_vault import FaissVault
 
 
 class FakeEmbedder:
-    """Deterministic bag-of-vocab vectors: related text overlaps, unrelated is orthogonal."""
+    """Deterministic bag-of-vocab vectors: related text overlaps, unrelated is orthogonal.
+    Passage and query share the vector space so a query matches a relevant passage."""
 
     VOCAB = ("dicabut", "vpti", "surveyor", "permendag", "oss", "impor")
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def _vectors(self, texts: list[str]) -> list[list[float]]:
         return [[float(t.lower().count(w)) for w in self.VOCAB] for t in texts]
+
+    def embed_passage(self, texts: list[str]) -> list[list[float]]:
+        return self._vectors(texts)
+
+    def embed_query(self, texts: list[str]) -> list[list[float]]:
+        return self._vectors(texts)
+
+
+class RecordingEmbedder:
+    """Records which role each call used, to pin build->passage / query->query."""
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def embed_passage(self, texts: list[str]) -> list[list[float]]:
+        self.calls.append("passage")
+        return [[1.0, 0.0] for _ in texts]
+
+    def embed_query(self, texts: list[str]) -> list[list[float]]:
+        self.calls.append("query")
+        return [[1.0, 0.0] for _ in texts]
 
 
 def _vault(tmp: Path) -> Path:
@@ -52,6 +74,16 @@ async def test_query_below_threshold_returns_empty(tmp_path: Path) -> None:
 
     grounding = await faiss_vault.query("oss")
     assert grounding.is_empty
+
+
+async def test_build_uses_passage_role_and_query_uses_query_role(tmp_path: Path) -> None:
+    recorder = RecordingEmbedder()
+    faiss_vault = FaissVault(recorder, index_path=str(tmp_path / "v.faiss"))
+
+    faiss_vault.build(str(_vault(tmp_path)))
+    await faiss_vault.query("apa pun")
+
+    assert recorder.calls == ["passage", "query"]
 
 
 async def test_query_before_build_returns_empty(tmp_path: Path) -> None:

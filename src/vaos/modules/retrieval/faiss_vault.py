@@ -51,7 +51,10 @@ class FaissVault:
             refs.append(str(path.relative_to(root)))
             texts.append(_strip_frontmatter(path.read_text(encoding="utf-8")))
 
-        vectors = _matrix(self._embedder.embed(texts)) if texts else np.zeros((0, 1), "float32")
+        if texts:
+            vectors = _matrix(self._embedder.embed_passage(texts))
+        else:
+            vectors = np.zeros((0, 1), dtype="float32")
         faiss.normalize_L2(vectors)
         index = faiss.IndexFlatIP(vectors.shape[1])
         if vectors.shape[0]:
@@ -71,7 +74,7 @@ class FaissVault:
         if index.ntotal == 0:
             return Grounding(chunks=[])
 
-        vector = _matrix(self._embedder.embed([text]))
+        vector = _matrix(self._embedder.embed_query([text]))
         faiss.normalize_L2(vector)
         scores, ids = index.search(vector, min(top_k, index.ntotal))
 

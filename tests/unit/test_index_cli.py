@@ -11,8 +11,14 @@ from vaos.modules.retrieval.faiss_vault import FaissVault
 
 
 class FakeEmbedder:
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def _vectors(self, texts: list[str]) -> list[list[float]]:
         return [[float(len(t)), 1.0] for t in texts]  # non-zero dim + vector
+
+    def embed_passage(self, texts: list[str]) -> list[list[float]]:
+        return self._vectors(texts)
+
+    def embed_query(self, texts: list[str]) -> list[list[float]]:
+        return self._vectors(texts)
 
 
 def _settings(tmp: Path) -> Settings:
