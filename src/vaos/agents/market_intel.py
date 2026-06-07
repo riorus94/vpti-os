@@ -14,6 +14,15 @@ class Insight(BaseModel):
     summary: str
 
 
+_NO_RESULTS = "Tidak ada hasil pencarian untuk topik ini."
+
+
 async def scan(topics: list[str], search: WebSearch) -> list[Insight]:
-    """Sweep each topic via WebSearch and return distilled insights."""
-    raise NotImplementedError("vaos-agents/market-intel")
+    """Sweep each topic via the injected WebSearch and return one Insight per topic,
+    its summary distilled from the result snippets (placeholder when none)."""
+    insights: list[Insight] = []
+    for topic in topics:
+        results = await search.search(topic)
+        summary = " ".join(results) if results else _NO_RESULTS
+        insights.append(Insight(topic=topic, summary=summary))
+    return insights

@@ -1,10 +1,10 @@
 """Agent-layer unit tests (ADR-0009). Each agent's core is testable with injected
 fakes — no scheduler, no network. Stubs until implemented per agent issue."""
 
-import pytest
 
 from vaos.adapters.store.memory import InMemoryStore
 from vaos.agents.knowledge_gap_resolver import digest
+from vaos.agents.market_intel import scan
 from vaos.agents.regulation_watch import find_stale
 from vaos.domain.grounding import RegulationStatus
 
@@ -55,7 +55,24 @@ async def test_digest_of_empty_backlog_is_empty() -> None:
     assert await digest(InMemoryStore()) == []
 
 
-@pytest.mark.skip(reason="implement in vaos-agents/market-intel")
-def test_scan_distills_one_insight_per_topic() -> None:
-    # fake WebSearch -> one Insight per topic.
-    ...
+class _FakeSearch:
+    async def search(self, query: str) -> list[str]:
+        return [f"{query}: tren naik", f"{query}: permintaan stabil"]
+
+
+async def test_scan_distills_one_insight_per_topic() -> None:
+    insights = await scan(["baja", "tekstil"], _FakeSearch())
+
+    assert [i.topic for i in insights] == ["baja", "tekstil"]   # one per topic, in order
+    assert "baja: tren naik" in insights[0].summary             # built from that topic's results
+    assert all(i.summary for i in insights)
+
+
+async def test_scan_yields_an_insight_even_with_no_results() -> None:
+    class _Empty:
+        async def search(self, query: str) -> list[str]:
+            return []
+
+    insights = await scan(["garam"], _Empty())
+    assert len(insights) == 1
+    assert insights[0].topic == "garam" and insights[0].summary  # non-empty placeholder summary
