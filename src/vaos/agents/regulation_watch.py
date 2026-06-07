@@ -20,5 +20,11 @@ class StaleRegulation(BaseModel):
 
 
 async def find_stale(cited_refs: list[str], status_of: StatusChecker) -> list[StaleRegulation]:
-    """Return cited regulations whose status is now diubah/dicabut."""
-    raise NotImplementedError("vaos-agents/regulation-watch")
+    """Return cited regulations whose status is now diubah/dicabut (in-force excluded),
+    each carrying its superseding reference when the checker provides one."""
+    stale: list[StaleRegulation] = []
+    for ref in cited_refs:
+        status, superseded_by = await status_of(ref)
+        if status is not RegulationStatus.BERLAKU:
+            stale.append(StaleRegulation(reference=ref, status=status, superseded_by=superseded_by))
+    return stale
