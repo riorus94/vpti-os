@@ -3,6 +3,10 @@
 build() persists the index + a metadata sidecar so query() can run in a fresh
 process without re-embedding.
 
+A live instance hot-reloads when a separate process rebuilds the on-disk index:
+query() compares the index file's signature (mtime + size) and reloads on change,
+so an edit → re-index loop reaches the running bot without a restart (vaos #25).
+
 Cosine similarity via an inner-product index over L2-normalized vectors. Internal
 notes carry no Regulation Status (status stays None) — regulation text and its
 dicabut/diubah status come from pasal-id, never from here (ADR-0002).
@@ -40,6 +44,7 @@ class FaissVault:
         self._min_score = min_score
         self._index: faiss.Index | None = None
         self._meta: _Meta | None = None
+        self._loaded_sig: tuple[int, int] | None = None  # (mtime_ns, size) of the loaded index
 
     def build(self, vault_path: str) -> int:
         """Embed every *.md note and persist the index + metadata sidecar. Returns
@@ -65,12 +70,27 @@ class FaissVault:
         meta: _Meta = [{"reference": r, "text": t} for r, t in zip(refs, texts, strict=True)]
         self._meta_path.write_text(json.dumps(meta), encoding="utf-8")
         self._index, self._meta = index, meta
+        self._loaded_sig = self._signature()
         return len(meta)
 
+    def _signature(self) -> tuple[int, int] | None:
+        """A cheap version stamp for the on-disk index, or None if it's not built."""
+        try:
+            stat = self._index_path.stat()
+        except FileNotFoundError:
+            return None
+        return (stat.st_mtime_ns, stat.st_size)
+
     async def query(self, text: str, top_k: int = 5) -> Grounding:
-        if self._index is None and not self._index_path.exists():
+        signature = self._signature()
+        if signature is None:
             return Grounding(chunks=[])  # not indexed yet: internal grounding absent (safe)
-        index, meta = self._load()
+        if self._index is None or signature != self._loaded_sig:
+            self._index = faiss.read_index(str(self._index_path))
+            self._meta = json.loads(self._meta_path.read_text(encoding="utf-8"))
+            self._loaded_sig = signature
+        index, meta = self._index, self._meta
+        assert meta is not None  # set alongside _index above
         if index.ntotal == 0:
             return Grounding(chunks=[])
 
@@ -92,9 +112,3 @@ class FaissVault:
                 )
             )
         return Grounding(chunks=chunks)
-
-    def _load(self) -> tuple[faiss.Index, _Meta]:
-        if self._index is None or self._meta is None:
-            self._index = faiss.read_index(str(self._index_path))
-            self._meta = json.loads(self._meta_path.read_text(encoding="utf-8"))
-        return self._index, self._meta
