@@ -11,6 +11,7 @@ from pydantic import BaseModel
 class GroundingSource(StrEnum):
     PASAL_ID = "pasal_id"      # official regulation text (ADR-0002)
     VAULT = "vault"            # internal FAISS-indexed note
+    WEB = "web"                # web search — strategy/opportunity only (web guardrail)
 
 
 class RegulationStatus(StrEnum):

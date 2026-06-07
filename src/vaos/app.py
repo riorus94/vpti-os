@@ -18,6 +18,7 @@ from vaos.modules.retrieval.router import RetrievalRouter
 from vaos.pipeline.orchestrator import Orchestrator
 from vaos.ports.llm import LLMClient
 from vaos.ports.retrieval import InternalSource
+from vaos.ports.search import WebSearch
 from vaos.ports.store import Store
 
 app = FastAPI(title="VAOS", version="0.1.0")
@@ -76,5 +77,15 @@ def build_bot(
     store = store or InMemoryStore()
     client = client or HttpTelegramClient(settings.telegram_bot_token)
     router = RetrievalRouter(regs=EmptyRegulationSource(), vault=_build_internal_source(settings))
-    orchestrator = Orchestrator(llm=llm, store=store, router=router)
+    orchestrator = Orchestrator(llm=llm, store=store, router=router, web=_build_web(settings))
     return TelegramBot(settings, llm=llm, orchestrator=orchestrator, client=client)
+
+
+def _build_web(settings: Settings) -> WebSearch | None:
+    """Tavily when an API key is configured; otherwise None (web search off — the
+    orchestrator runs strategy/opportunity briefs without web grounding)."""
+    if not settings.tavily_api_key:
+        return None
+    from vaos.adapters.search.tavily import TavilySearch
+
+    return TavilySearch(settings.tavily_api_key)

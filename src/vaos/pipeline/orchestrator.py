@@ -16,19 +16,37 @@ Refusal the orchestrator fails to handle is a visible bug, not a silent one.
 
 from vaos.domain.context import Context
 from vaos.domain.decision_engine import decide
+from vaos.domain.grounding import Grounding, GroundingChunk, GroundingSource
 from vaos.domain.output import Refusal
 from vaos.modules.intent_classifier import classify
 from vaos.modules.reasoning import advisory, compliance
 from vaos.modules.retrieval.router import RetrievalRouter
+from vaos.modules.web_search import SearchMode, mode_for
 from vaos.ports.llm import LLMClient
+from vaos.ports.search import WebSearch
 from vaos.ports.store import Store
 
 
+class _NoWebSearch:
+    """Default when web search is not configured — strategy/opportunity briefs run
+    without web grounding rather than failing."""
+
+    async def search(self, query: str) -> list[str]:
+        return []
+
+
 class Orchestrator:
-    def __init__(self, llm: LLMClient, store: Store, router: RetrievalRouter) -> None:
+    def __init__(
+        self,
+        llm: LLMClient,
+        store: Store,
+        router: RetrievalRouter,
+        web: WebSearch | None = None,
+    ) -> None:
         self._llm = llm
         self._store = store
         self._router = router
+        self._web = web or _NoWebSearch()
 
     async def handle(self, query: str, context: Context, context_id: str) -> str:
         # Context is already CONFIRMED (the Telegram layer owns infer->confirm);
@@ -43,11 +61,30 @@ class Orchestrator:
                 return result.message
             return result.text
 
+        # Strategy/opportunity (HYBRID) briefs incorporate web grounding; compliance
+        # and risk never reach the web (the Web Search Strategy guardrail).
+        if mode_for(intent) is SearchMode.HYBRID:
+            grounding = await self._with_web(query, grounding)
         brief = await advisory.brief(query, context, intent, grounding, self._llm)
         actions = decide(brief.finding)
         # Persisting the full output + actions is vaos-mvp/09; here we render the reply.
         named = f"[{brief.thinking_model}] {brief.sections.ringkasan_eksekutif}"
         return f"{named}\n{len(actions)} tindakan diusulkan."
+
+    async def _with_web(self, query: str, grounding: Grounding) -> Grounding:
+        """Append web-search results as WEB-tagged chunks, distinguished from the
+        regulation/internal grounding the brief also receives."""
+        snippets = await self._web.search(query)
+        if not snippets:
+            return grounding
+        web_chunks = [
+            GroundingChunk(source=GroundingSource.WEB, reference="web", text=s, score=0.0)
+            for s in snippets
+        ]
+        return Grounding(
+            chunks=grounding.chunks + web_chunks,
+            regulation_unavailable=grounding.regulation_unavailable,
+        )
 
     async def log_refusal(self, refusal: Refusal, query: str, context_id: str) -> None:
         # A Refusal the orchestrator fails to log would be a silent gap — the exact

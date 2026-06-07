@@ -25,10 +25,19 @@ _SYSTEM = (
 )
 
 
+def _grounding_block(grounding: Grounding) -> str:
+    """Render grounding for the prompt, each chunk labeled by source so the model
+    can weigh — and the brief can distinguish — regulation vs internal vs web."""
+    if grounding.is_empty:
+        return "(tidak ada grounding tersedia)"
+    return "\n".join(f"[{c.source.value}] {c.reference}: {c.text}" for c in grounding.chunks)
+
+
 async def brief(
     query: str, context: Context, intent: Intent, grounding: Grounding, llm: LLMClient
 ) -> AdvisoryBrief:
-    payload = await complete_json(llm, _SYSTEM, query, AdvisoryPayload)
+    prompt = f"{query}\n\nGrounding:\n{_grounding_block(grounding)}"
+    payload = await complete_json(llm, _SYSTEM, prompt, AdvisoryPayload)
     # Registry validation is a domain decision, applied after the parse: an
     # unregistered model is a soft fallback, never a parse failure.
     model = payload.thinking_model

@@ -9,8 +9,8 @@ import json
 
 from vaos.adapters.llm.stub import StubLLM
 from vaos.domain.context import Context
+from vaos.domain.grounding import Grounding, GroundingChunk, GroundingSource
 from vaos.domain.intent import Intent
-from vaos.domain.grounding import Grounding
 from vaos.domain.output import AdvisoryBrief
 from vaos.modules.reasoning.advisory import brief
 from vaos.modules.reasoning.thinking_models import DEFAULT_BY_INTENT
@@ -49,6 +49,27 @@ def test_malformed_llm_output_raises_format_error() -> None:
     from vaos.modules.llm_json import LLMFormatError
     with pytest.raises(LLMFormatError):
         asyncio.run(brief("q", _ctx(), Intent.RISK, Grounding(chunks=[]), StubLLM("not json")))
+
+
+def test_brief_includes_grounding_labeled_by_source_in_prompt() -> None:
+    captured: dict[str, str] = {}
+
+    class CapturingLLM:
+        async def complete(self, system: str, prompt: str) -> str:
+            captured["prompt"] = prompt
+            return _payload("pre_mortem")
+
+    grounding = Grounding(chunks=[
+        GroundingChunk(source=GroundingSource.VAULT, reference="note1",
+                       text="proses VPTI internal", score=0.8),
+        GroundingChunk(source=GroundingSource.WEB, reference="web",
+                       text="tren pasar baja 2026", score=0.0),
+    ])
+    asyncio.run(brief("haruskah ekspansi?", _ctx(), Intent.STRATEGY, grounding, CapturingLLM()))
+
+    p = captured["prompt"]
+    assert "proses VPTI internal" in p and "tren pasar baja 2026" in p   # grounding incorporated
+    assert "vault" in p and "web" in p                                   # web distinguished
 
 
 def test_brief_emits_finding_from_llm() -> None:
