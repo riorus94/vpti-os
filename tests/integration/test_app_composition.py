@@ -9,6 +9,7 @@ import json
 
 import pytest
 
+from vaos.adapters.llm.anthropic_claude import AnthropicLLM
 from vaos.adapters.llm.azure_openai import AzureOpenAILLM
 from vaos.adapters.llm.stub import StubLLM
 from vaos.adapters.retrieval.stub import EmptyInternalSource
@@ -36,6 +37,7 @@ def test_build_llm_selects_adapter_by_provider() -> None:
     assert isinstance(
         _build_llm(Settings(llm_provider="azure_openai")), AzureOpenAILLM
     )
+    assert isinstance(_build_llm(Settings(llm_provider="anthropic")), AnthropicLLM)
     with pytest.raises(ValueError):
         _build_llm(Settings(llm_provider="bogus"))
 
@@ -66,3 +68,10 @@ async def test_composition_root_assembles_runnable_bot() -> None:
     reply = await bot.on_message(user_id=8, text="ya")
     assert reply  # a refusal message, not an empty string
     assert len(await store.knowledge_gaps()) == 1
+
+
+def test_build_bot_wires_the_telegram_transport_client() -> None:
+    from vaos.adapters.telegram.client import HttpTelegramClient
+
+    bot = build_bot(Settings(telegram_bot_token="t", llm_provider="stub"))
+    assert isinstance(bot._client, HttpTelegramClient)  # ready for run() without injection

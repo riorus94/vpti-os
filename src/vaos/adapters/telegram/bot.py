@@ -12,6 +12,7 @@ getUpdates I/O loop that feeds it and is covered by integration, not unit tests.
 
 from uuid import uuid4
 
+from vaos.adapters.telegram.client import TelegramClient
 from vaos.config import Settings
 from vaos.domain.context import InferredContext
 from vaos.modules.context_builder import confirm, infer
@@ -28,11 +29,13 @@ class TelegramBot:
         settings: Settings,
         llm: LLMClient | None = None,
         orchestrator: Orchestrator | None = None,
+        client: TelegramClient | None = None,
     ) -> None:
         self._settings = settings
         self._allowlist = settings.allowlist_ids()
         self._llm = llm
         self._orchestrator = orchestrator
+        self._client = client
         # user_id -> (original query, inferred context awaiting confirmation)
         self._pending: dict[int, tuple[str, InferredContext]] = {}
 
@@ -58,5 +61,19 @@ class TelegramBot:
             f"Keputusan: {inferred.decision_required}. Benar? (ya/tidak)"
         )
 
-    def run(self) -> None:
-        raise NotImplementedError("vaos-mvp/01 — getUpdates long-poll loop")
+    async def run(self) -> None:
+        """Long-poll getUpdates forever, dispatching each update through on_message
+        and replying. The HTTP transport is the thin client behind TelegramClient."""
+        offset = 0
+        while True:
+            offset = await self._poll_once(offset)
+
+    async def _poll_once(self, offset: int) -> int:
+        """Process one getUpdates batch; return the next offset (last id + 1) so the
+        consumed updates are never re-fetched."""
+        assert self._client is not None
+        for update in await self._client.get_updates(offset):
+            reply = await self.on_message(update.user_id, update.text)
+            await self._client.send_message(update.chat_id, reply)
+            offset = update.update_id + 1
+        return offset
