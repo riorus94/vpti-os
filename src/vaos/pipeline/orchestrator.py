@@ -14,18 +14,40 @@ returns a Refusal, the orchestrator calls store.record_knowledge_gap(...). A
 Refusal the orchestrator fails to handle is a visible bug, not a silent one.
 """
 
+from vaos.domain.context import Context
+from vaos.domain.decision_engine import decide
 from vaos.domain.output import Refusal
+from vaos.modules.intent_classifier import classify
+from vaos.modules.reasoning import advisory, compliance
+from vaos.modules.retrieval.router import RetrievalRouter
 from vaos.ports.llm import LLMClient
 from vaos.ports.store import Store
 
 
 class Orchestrator:
-    def __init__(self, llm: LLMClient, store: Store) -> None:
+    def __init__(self, llm: LLMClient, store: Store, router: RetrievalRouter) -> None:
         self._llm = llm
         self._store = store
+        self._router = router
 
-    async def handle(self, query: str, asker_id: int) -> str:
-        raise NotImplementedError("wired incrementally across vaos-mvp/01..09")
+    async def handle(self, query: str, context: Context, context_id: str) -> str:
+        # Context is already CONFIRMED (the Telegram layer owns infer->confirm);
+        # the orchestrator holds no conversational memory (ADR-0003).
+        intent = await classify(query, context, self._llm)
+        grounding = await self._router.retrieve(query, context)
+
+        if not intent.is_advisory:
+            result = await compliance.answer(query, context, grounding, self._llm)
+            if isinstance(result, Refusal):
+                await self.log_refusal(result, query, context_id)
+                return result.message
+            return result.text
+
+        brief = await advisory.brief(query, context, intent, grounding, self._llm)
+        actions = decide(brief.finding)
+        # Persisting the full output + actions is vaos-mvp/09; here we render the reply.
+        named = f"[{brief.thinking_model}] {brief.sections.ringkasan_eksekutif}"
+        return f"{named}\n{len(actions)} tindakan diusulkan."
 
     async def log_refusal(self, refusal: Refusal, query: str, context_id: str) -> None:
         # A Refusal the orchestrator fails to log would be a silent gap — the exact

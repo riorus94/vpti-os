@@ -9,13 +9,25 @@ import asyncio
 
 from vaos.adapters.llm.stub import StubLLM
 from vaos.adapters.store.memory import InMemoryStore
+from vaos.domain.grounding import Grounding
 from vaos.domain.output import GapReason, Refusal
+from vaos.modules.retrieval.router import RetrievalRouter
 from vaos.pipeline.orchestrator import Orchestrator
+
+
+class _EmptySource:
+    async def query(self, text: str) -> Grounding:
+        return Grounding(chunks=[])
+
+
+def _router() -> RetrievalRouter:
+    # log_refusal never touches the router; a trivial one keeps the constructor honest.
+    return RetrievalRouter(regs=_EmptySource(), vault=_EmptySource())
 
 
 def test_empty_grounding_refusal_logs_knowledge_gap_signal() -> None:
     store = InMemoryStore()
-    orch = Orchestrator(llm=StubLLM(""), store=store)
+    orch = Orchestrator(llm=StubLLM(""), store=store, router=_router())
     refusal = Refusal(reason=GapReason.EMPTY_GROUNDING, message="…")
 
     asyncio.run(orch.log_refusal(refusal, query="HS 3824.99 wajib LS?", context_id="ctx-1"))
@@ -36,7 +48,7 @@ def test_source_unavailable_refusal_is_not_recorded_as_knowledge_gap() -> None:
     # It must NOT pollute the Knowledge-Gap backlog (the vault owner can't fix it),
     # but it IS logged as a distinct event for ops/alerting.
     store = InMemoryStore()
-    orch = Orchestrator(llm=StubLLM(""), store=store)
+    orch = Orchestrator(llm=StubLLM(""), store=store, router=_router())
     refusal = Refusal(reason=GapReason.SOURCE_UNAVAILABLE, message="…")
 
     asyncio.run(orch.log_refusal(refusal, query="wajib LS?", context_id="ctx-3"))
@@ -50,7 +62,7 @@ def test_source_unavailable_refusal_is_not_recorded_as_knowledge_gap() -> None:
 
 def test_revoked_regulation_refusal_logs_stale_regulation_with_superseding_reference() -> None:
     store = InMemoryStore()
-    orch = Orchestrator(llm=StubLLM(""), store=store)
+    orch = Orchestrator(llm=StubLLM(""), store=store, router=_router())
     refusal = Refusal(
         reason=GapReason.REVOKED_REGULATION,
         message="…",

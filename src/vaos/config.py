@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     embedding_model: str = "intfloat/multilingual-e5-large"
 
     # Retrieval (ADR-0002)
+    internal_source: str = "empty"   # empty | faiss (FAISS over the vault)
     pasal_id_base_url: str = ""
     vault_path: str = "./vault"
     faiss_index_path: str = "./data/index/vault.faiss"

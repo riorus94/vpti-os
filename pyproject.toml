@@ -21,6 +21,7 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-asyncio",
+    "aiosqlite",                # SQLite async driver for the dialect-agnostic store test
     "ruff",
     "mypy",
 ]
@@ -28,6 +29,7 @@ dev = [
 # Needs a py3.12 env (faiss/torch have no py3.14 wheels yet).
 rag = [
     "faiss-cpu",
+    "numpy",                    # vector math for the FAISS vault (vaos-mvp/04)
     "sentence-transformers",    # local multilingual-e5
 ]
 # AI evaluation. Also needs py3.12 (ragas -> scikit-network has no py3.14 wheel).
@@ -57,3 +59,7 @@ select = ["E", "F", "I", "UP", "B"]
 python_version = "3.12"
 strict = true
 packages = ["vaos"]
+
+[[tool.mypy.overrides]]
+module = ["faiss.*", "sentence_transformers.*"]
+ignore_missing_imports = true
