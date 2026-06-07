@@ -14,9 +14,14 @@ from vaos.modules.reasoning.thinking_models import DEFAULT_BY_INTENT, REGISTRY
 from vaos.ports.llm import LLMClient
 
 _SYSTEM = (
-    "Produce an advisory brief as JSON with keys: thinking_model, sections "
-    "(ringkasan_eksekutif, konteks, analisis, risiko, peluang, rekomendasi), "
-    "finding (compliance_status, risks, opportunities)."
+    "Produce an advisory brief as a single raw JSON object — no markdown fences, no "
+    "prose — with exactly these keys:\n"
+    "- thinking_model: string\n"
+    "- sections: object with string values for keys ringkasan_eksekutif, konteks, "
+    "analisis, risiko, peluang, rekomendasi\n"
+    "- finding: object with keys compliance_status (one of: compliant, non_compliant, "
+    "not_applicable, unknown), risks (array of objects {description: string, severity: "
+    "string}), opportunities (array of objects {description: string})"
 )
 
 
