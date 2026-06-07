@@ -5,6 +5,7 @@ is tested with a mocked transport. The live long-poll itself is a token smoke te
 import json
 
 import httpx
+import pytest
 
 from vaos.adapters.llm.stub import StubLLM
 from vaos.adapters.telegram.bot import TelegramBot
@@ -113,3 +114,86 @@ async def test_http_client_parses_text_updates_and_skips_others() -> None:
 
     assert [u.update_id for u in updates] == [1]
     assert updates[0].user_id == 8 and updates[0].chat_id == 100 and updates[0].text == "halo"
+
+
+def _processing_bot(client: object) -> TelegramBot:
+    return TelegramBot(
+        Settings(telegram_allowlist="8"),
+        llm=StubLLM(_INFER),
+        orchestrator=FakeOrchestrator(),
+        client=client,  # type: ignore[arg-type]
+    )
+
+
+async def test_handler_failure_is_logged_with_traceback() -> None:
+    from loguru import logger
+    records: list[str] = []
+    sink = logger.add(records.append, level="ERROR")
+    try:
+        client = FakeClient([[Update(update_id=1, user_id=8, chat_id=9, text="hi")]])
+        bot = TelegramBot(
+            Settings(telegram_allowlist="8"),
+            llm=StubLLM("not json — infer raises"),
+            orchestrator=FakeOrchestrator(),
+            client=client,
+        )
+        await bot._poll_once(0)
+    finally:
+        logger.remove(sink)
+    assert any("handling update" in str(r) for r in records)   # error logged for diagnosis
+    assert client.sent                                          # user still got a reply
+
+
+async def test_send_failure_is_logged_and_does_not_stop_the_batch() -> None:
+    class SendBoom:
+        def __init__(self) -> None:
+            self.sends = 0
+
+        async def get_updates(self, offset: int) -> list[Update]:
+            return [
+                Update(update_id=1, user_id=8, chat_id=9, text="ya"),
+                Update(update_id=2, user_id=8, chat_id=9, text="ya"),
+            ]
+
+        async def send_message(self, chat_id: int, text: str) -> None:
+            self.sends += 1
+            raise RuntimeError("send down")
+
+    client = SendBoom()
+    new_offset = await _processing_bot(client)._poll_once(0)
+
+    assert new_offset == 3        # both updates processed despite every send failing
+    assert client.sends == 2      # tried to send for both, didn't bail after the first
+
+
+async def test_run_survives_a_transient_getupdates_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    import vaos.adapters.telegram.bot as botmod
+
+    async def _no_sleep(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(botmod.asyncio, "sleep", _no_sleep)  # don't wait the backoff
+
+    class _Stop(BaseException):
+        pass
+
+    class Flaky:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.sent: list[tuple[int, str]] = []
+
+        async def get_updates(self, offset: int) -> list[Update]:
+            self.calls += 1
+            if self.calls == 1:
+                raise RuntimeError("transient getUpdates failure")
+            if self.calls == 2:
+                return [Update(update_id=5, user_id=8, chat_id=9, text="ya")]
+            raise _Stop()  # BaseException — escapes run()'s `except Exception` to end the test
+
+        async def send_message(self, chat_id: int, text: str) -> None:
+            self.sent.append((chat_id, text))
+
+    client = Flaky()
+    with pytest.raises(_Stop):
+        await _processing_bot(client).run()
+    assert len(client.sent) == 1   # recovered after the transient error and processed the update
