@@ -14,9 +14,12 @@ returns a Refusal, the orchestrator calls store.record_knowledge_gap(...). A
 Refusal the orchestrator fails to handle is a visible bug, not a silent one.
 """
 
+from loguru import logger
+
 from vaos.domain.context import Context
 from vaos.domain.decision_engine import decide
 from vaos.domain.grounding import Grounding, GroundingChunk, GroundingSource
+from vaos.domain.intent import Intent
 from vaos.domain.output import Refusal
 from vaos.modules.intent_classifier import classify
 from vaos.modules.reasoning import advisory, compliance
@@ -25,6 +28,14 @@ from vaos.modules.web_search import SearchMode, mode_for
 from vaos.ports.llm import LLMClient
 from vaos.ports.search import WebSearch
 from vaos.ports.store import Store
+
+
+def _grounding_summary(grounding: Grounding) -> str:
+    """One-line, source-by-source breakdown shown on every reply, so it is visible
+    whether the vault / regulation / web were actually consulted."""
+    counts = grounding.source_counts
+    breakdown = ", ".join(f"{counts.get(source, 0)} {source.value}" for source in GroundingSource)
+    return f"Sumber: {breakdown}"
 
 
 class _NoWebSearch:
@@ -55,21 +66,40 @@ class Orchestrator:
         grounding = await self._router.retrieve(query, context)
 
         if not intent.is_advisory:
+            self._log_grounding(intent, grounding)
             result = await compliance.answer(query, context, grounding, self._llm)
             if isinstance(result, Refusal):
                 await self.log_refusal(result, query, context_id)
-                return result.message
-            return result.text
+                return self._refusal_reply(result, grounding)
+            return f"{result.text}\n\n{_grounding_summary(grounding)}"
 
         # Strategy/opportunity (HYBRID) briefs incorporate web grounding; compliance
         # and risk never reach the web (the Web Search Strategy guardrail).
         if mode_for(intent) is SearchMode.HYBRID:
             grounding = await self._with_web(query, grounding)
+        self._log_grounding(intent, grounding)
         brief = await advisory.brief(query, context, intent, grounding, self._llm)
         actions = decide(brief.finding)
         # Persisting the full output + actions is vaos-mvp/09; here we render the reply.
         named = f"[{brief.thinking_model}] {brief.sections.ringkasan_eksekutif}"
-        return f"{named}\n{len(actions)} tindakan diusulkan."
+        return (
+            f"{named}\n{len(actions)} tindakan diusulkan.\n{_grounding_summary(grounding)}"
+        )
+
+    def _log_grounding(self, intent: Intent, grounding: Grounding) -> None:
+        logger.info(
+            "grounding intent={}: {}",
+            intent.value,
+            {s.value: grounding.source_counts.get(s, 0) for s in GroundingSource},
+        )
+
+    def _refusal_reply(self, refusal: Refusal, grounding: Grounding) -> str:
+        """Transparent refusal: say what was checked, and — for a knowledge gap —
+        that it was recorded, so 'no answer' never reads like silence."""
+        reply = f"{refusal.message}\n{_grounding_summary(grounding)}"
+        if refusal.is_knowledge_gap:
+            reply += "\nSudah dicatat sebagai knowledge gap untuk dilengkapi."
+        return reply
 
     async def _with_web(self, query: str, grounding: Grounding) -> Grounding:
         """Append web-search results as WEB-tagged chunks, distinguished from the

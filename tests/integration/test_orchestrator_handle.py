@@ -106,7 +106,29 @@ def test_compliance_query_returns_grounded_answer_text() -> None:
     orch = Orchestrator(llm=llm, store=InMemoryStore(), router=router)
 
     reply = asyncio.run(orch.handle("wajib LS?", _ctx(), context_id="ctx-1"))
-    assert reply == "Ya, wajib LS per Permendag X Pasal 3."
+    assert reply.startswith("Ya, wajib LS per Permendag X Pasal 3.")
+    assert "Sumber: 1 pasal_id, 0 vault, 0 web" in reply   # transparency footer
+
+
+def test_grounding_source_counts() -> None:
+    g = Grounding(chunks=[
+        _pasal(),
+        GroundingChunk(source=GroundingSource.VAULT, reference="n1", text="t", score=0.5),
+        GroundingChunk(source=GroundingSource.VAULT, reference="n2", text="t", score=0.4),
+    ])
+    assert g.source_counts == {GroundingSource.PASAL_ID: 1, GroundingSource.VAULT: 2}
+
+
+def test_compliance_empty_grounding_refusal_is_transparent_and_logs_gap() -> None:
+    llm = ScriptedLLM(intent="compliance", compliance="should-not-be-used")
+    router = RetrievalRouter(regs=FakeSource([]), vault=FakeSource([]))  # empty grounding
+    store = InMemoryStore()
+    orch = Orchestrator(llm=llm, store=store, router=router)
+
+    reply = asyncio.run(orch.handle("wajib LS?", _ctx(), context_id="ctx-e"))
+    assert "knowledge gap" in reply.lower()              # transparent: says it was recorded
+    assert "Sumber: 0 pasal_id, 0 vault, 0 web" in reply  # what was checked
+    assert len(asyncio.run(store.knowledge_gaps())) == 1
 
 
 def test_compliance_with_dead_regulation_source_refuses_and_logs() -> None:
@@ -141,3 +163,4 @@ def test_advisory_query_returns_brief_and_proposes_actions() -> None:
     assert "pre_mortem" in reply
     # non_compliant -> remediation, plus one risk_flag = 2 proposed Actions.
     assert "2 tindakan diusulkan" in reply
+    assert "Sumber:" in reply   # transparency footer on advisory briefs too
