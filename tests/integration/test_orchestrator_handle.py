@@ -90,14 +90,27 @@ def test_compliance_never_calls_web() -> None:
     assert web.queries == []   # guardrail: compliance never reaches the web
 
 
-def test_risk_advisory_does_not_call_web() -> None:
-    web = RecordingWeb(["x"])
+def test_risk_with_internal_grounding_skips_web() -> None:
+    web = RecordingWeb(["should not be fetched"])
+    vault_chunk = GroundingChunk(
+        source=GroundingSource.VAULT, reference="n", text="proses", score=0.7
+    )
+    orch = Orchestrator(
+        llm=ScriptedLLM(intent="risk", advisory=_ADVISORY), store=InMemoryStore(),
+        router=RetrievalRouter(regs=FakeSource([]), vault=FakeSource([vault_chunk])), web=web,
+    )
+    asyncio.run(orch.handle("risiko?", _ctx(), context_id="ctx-r1"))
+    assert web.queries == []   # internal grounding present -> no fallback
+
+
+def test_risk_falls_back_to_web_when_internal_grounding_is_empty() -> None:
+    web = RecordingWeb(["tren risiko pasar"])
     orch = Orchestrator(
         llm=ScriptedLLM(intent="risk", advisory=_ADVISORY), store=InMemoryStore(),
         router=RetrievalRouter(regs=FakeSource([]), vault=FakeSource([])), web=web,
     )
-    asyncio.run(orch.handle("risiko?", _ctx(), context_id="ctx-r"))
-    assert web.queries == []   # risk is INTERNAL (web only for strategy/opportunity)
+    asyncio.run(orch.handle("risiko?", _ctx(), context_id="ctx-r2"))
+    assert web.queries == ["risiko?"]   # empty internal -> escalate to web
 
 
 def test_compliance_query_returns_grounded_answer_text() -> None:
