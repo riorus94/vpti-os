@@ -3,6 +3,7 @@
 Tagged by source so citations render correctly (verbatim pasal vs internal note).
 """
 
+from collections import Counter
 from enum import StrEnum
 
 from pydantic import BaseModel
@@ -41,3 +42,9 @@ class Grounding(BaseModel):
     @property
     def is_empty(self) -> bool:
         return len(self.chunks) == 0
+
+    @property
+    def source_counts(self) -> dict[GroundingSource, int]:
+        """How many chunks came from each source — the basis for the 'Sumber: ...'
+        transparency line so it's visible whether the vault/regulation/web were used."""
+        return dict(Counter(chunk.source for chunk in self.chunks))
