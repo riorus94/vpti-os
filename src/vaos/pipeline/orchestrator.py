@@ -73,9 +73,10 @@ class Orchestrator:
                 return self._refusal_reply(result, grounding)
             return f"{result.text}\n\n{_grounding_summary(grounding)}"
 
-        # Strategy/opportunity (HYBRID) briefs incorporate web grounding; compliance
-        # and risk never reach the web (the Web Search Strategy guardrail).
-        if mode_for(intent) is SearchMode.HYBRID:
+        # Strategy/opportunity (HYBRID) always incorporate web grounding; any advisory
+        # intent also FALLS BACK to web when internal grounding is empty. Compliance is
+        # not advisory and never reaches here — the web guardrail holds by construction.
+        if mode_for(intent) is SearchMode.HYBRID or grounding.is_empty:
             grounding = await self._with_web(query, grounding)
         self._log_grounding(intent, grounding)
         brief = await advisory.brief(query, context, intent, grounding, self._llm)
