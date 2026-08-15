@@ -1,0 +1,121 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* ---------------------------------------------------------------------
+   VPTI Design Tokens
+   Primary = navy dipakai konsisten di seluruh dashboard peran (#0F2942).
+   Status: warning=amber (berjalan/perlu tindakan), destructive=rose
+   (ditolak/perlu revisi), success=emerald (selesai/LS terbit).
+   1. Definisi variabel CSS di root (BUKAN di dalam @layer base)
+--------------------------------------------------------------------- */
+:root {
+  --radius: 0.5rem;
+
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(222 47% 11%);
+
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222 47% 11%);
+
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222 47% 11%);
+
+  --primary: hsl(209 63% 16%);           /* #0F2942 */
+  --primary-foreground: hsl(210 40% 98%);
+
+  --secondary: hsl(210 40% 96%);
+  --secondary-foreground: hsl(222 47% 11%);
+
+  --muted: hsl(210 40% 96%);
+  --muted-foreground: hsl(215 16% 47%);
+
+  --accent: hsl(38 92% 50%);             /* amber — berjalan / perlu tindakan */
+  --accent-foreground: hsl(26 83% 14%);
+
+  --success: hsl(152 60% 36%);           /* emerald — selesai / LS terbit */
+  --success-foreground: hsl(210 40% 98%);
+
+  --destructive: hsl(347 77% 50%);       /* rose — ditolak / perlu revisi */
+  --destructive-foreground: hsl(210 40% 98%);
+
+  --border: hsl(214 32% 91%);
+  --input: hsl(214 32% 91%);
+  --ring: hsl(209 63% 16%);
+}
+
+.dark {
+  --background: hsl(222 47% 8%);
+  --foreground: hsl(210 40% 98%);
+
+  --card: hsl(222 40% 11%);
+  --card-foreground: hsl(210 40% 98%);
+
+  --popover: hsl(222 40% 11%);
+  --popover-foreground: hsl(210 40% 98%);
+
+  --primary: hsl(209 70% 55%);
+  --primary-foreground: hsl(222 47% 11%);
+
+  --secondary: hsl(217 33% 17%);
+  --secondary-foreground: hsl(210 40% 98%);
+
+  --muted: hsl(217 33% 17%);
+  --muted-foreground: hsl(215 20% 65%);
+
+  --accent: hsl(38 92% 55%);
+  /* Amber terang: dipakai sebagai teks di atas tint `bg-accent/10` pada
+     kartu gelap, bukan di atas amber solid — versi gelap tidak terbaca. */
+  --accent-foreground: hsl(38 95% 70%);
+
+  --success: hsl(152 55% 45%);
+  --success-foreground: hsl(222 47% 11%);
+
+  --destructive: hsl(347 70% 55%);
+  --destructive-foreground: hsl(210 40% 98%);
+
+  --border: hsl(217 33% 20%);
+  --input: hsl(217 33% 20%);
+  --ring: hsl(209 70% 55%);
+}
+
+/* 2. Peta variabel ke utility Tailwind */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+/* 3. Base styles (TANPA pembungkus hsl() di sini) */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  }
+}
