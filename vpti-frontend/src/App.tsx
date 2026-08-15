@@ -46,7 +46,7 @@ function App() {
                 <Badge variant={statusVariant(s.status)}>{s.status}</Badge>
               </div>
             ))}
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-wrap gap-2 pt-2">
               <Button>Setujui &amp; Teruskan</Button>
               <Button variant="outline">Kembalikan</Button>
               <Button variant="destructive">Tolak</Button>
@@ -54,7 +54,7 @@ function App() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Card><CardContent className="pt-4"><div className="text-2xl font-semibold">6</div><div className="text-xs text-muted-foreground">Total Permohonan</div></CardContent></Card>
           <Card><CardContent className="pt-4"><div className="text-2xl font-semibold text-accent-foreground">2</div><div className="text-xs text-muted-foreground">Perlu Tindakan</div></CardContent></Card>
           <Card><CardContent className="pt-4"><div className="text-2xl font-semibold text-success">2</div><div className="text-xs text-muted-foreground">LS Terbit</div></CardContent></Card>

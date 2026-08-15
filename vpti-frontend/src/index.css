@@ -63,7 +63,9 @@
   --muted-foreground: hsl(215 20% 65%);
 
   --accent: hsl(38 92% 55%);
-  --accent-foreground: hsl(26 83% 10%);
+  /* Amber terang: dipakai sebagai teks di atas tint `bg-accent/10` pada
+     kartu gelap, bukan di atas amber solid — versi gelap tidak terbaca. */
+  --accent-foreground: hsl(38 95% 70%);
 
   --success: hsl(152 55% 45%);
   --success-foreground: hsl(222 47% 11%);
