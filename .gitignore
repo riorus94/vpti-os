@@ -33,3 +33,6 @@ Thumbs.db
 
 # Matt Pocock skills (local-only, not pushed)
 .claude/skills/
+
+# Session-local Claude Code state (rewritten by every session, not shared work)
+.claude/scheduled_tasks.lock
