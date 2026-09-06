@@ -33,6 +33,9 @@ class Settings(BaseSettings):
 
     # Web search (never compliance)
     tavily_api_key: str = ""
+    # Comma-separated domains that scope every outbound web sweep: Tavily is asked
+    # for these only, and the proactive agents treat them as their watched sources.
+    web_source_domains: str = "anindya.biz,*.anindya.biz,scisi.co.id,*.scisi.co.id"
 
     # Persistence (vaos-mvp/09)
     database_url: str = "postgresql+psycopg://localhost/vaos"
@@ -45,6 +48,11 @@ class Settings(BaseSettings):
 
     def approver_ids(self) -> set[int]:
         return {int(x) for x in self.telegram_approvers.split(",") if x.strip()}
+
+    def web_source_domain_list(self) -> list[str]:
+        """The canonical watched-source list, order preserved, blanks dropped.
+        Empty means unscoped — the whole open web."""
+        return [d.strip() for d in self.web_source_domains.split(",") if d.strip()]
 
 
 settings = Settings()

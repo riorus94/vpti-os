@@ -83,9 +83,15 @@ def build_bot(
 
 def _build_web(settings: Settings) -> WebSearch | None:
     """Tavily when an API key is configured; otherwise None (web search off — the
-    orchestrator runs strategy/opportunity briefs without web grounding)."""
+    orchestrator runs strategy/opportunity briefs without web grounding).
+
+    The sweep is scoped to the configured watched-source domains; an empty list
+    leaves it unscoped."""
     if not settings.tavily_api_key:
         return None
     from vaos.adapters.search.tavily import TavilySearch
 
-    return TavilySearch(settings.tavily_api_key)
+    return TavilySearch(
+        settings.tavily_api_key,
+        include_domains=settings.web_source_domain_list(),
+    )
