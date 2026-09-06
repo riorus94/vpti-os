@@ -76,3 +76,14 @@ async def test_scan_yields_an_insight_even_with_no_results() -> None:
     insights = await scan(["garam"], _Empty())
     assert len(insights) == 1
     assert insights[0].topic == "garam" and insights[0].summary  # non-empty placeholder summary
+
+
+async def test_scan_records_the_watched_sources_on_every_insight() -> None:
+    domains = ["anindya.biz", "scisi.co.id"]
+    insights = await scan(["baja", "tekstil"], _FakeSearch(), domains)
+
+    assert all(i.sources == domains for i in insights)  # provenance carried, not implicit
+
+
+async def test_scan_without_sources_reports_an_open_web_sweep() -> None:
+    assert (await scan(["baja"], _FakeSearch()))[0].sources == []

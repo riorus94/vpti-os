@@ -33,3 +33,28 @@ async def test_empty_results_yield_empty_list() -> None:
         return httpx.Response(200, json={"results": []})
 
     assert await _search(handler).search("apa pun") == []
+
+
+async def test_include_domains_scopes_the_sweep() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+        body = json.loads(request.content)
+        assert body["include_domains"] == ["anindya.biz", "*.anindya.biz"]
+        return httpx.Response(200, json={"results": [{"content": "X"}]})
+
+    transport = httpx.MockTransport(handler)  # type: ignore[arg-type]
+    adapter = TavilySearch(
+        api_key="tvly-key",
+        http=httpx.AsyncClient(transport=transport),
+        include_domains=["anindya.biz", "*.anindya.biz"],
+    )
+    assert await adapter.search("apa pun") == ["X"]
+
+
+async def test_no_domains_leaves_the_sweep_unscoped() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+        assert "include_domains" not in json.loads(request.content)
+        return httpx.Response(200, json={"results": []})
+
+    assert await _search(handler).search("apa pun") == []
